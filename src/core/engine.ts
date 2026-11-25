@@ -2,6 +2,9 @@
  * The engine: chat in, grounded decisions out. Code is never sent for processing.
  */
 import type { Author, DecisionRecord, NewDecision } from "./store";
+import { CODE_PLACEHOLDER, stripCode } from "./code";
+
+export { asMarkdownCode, splitCode, stripCode } from "./code";
 
 export interface ChatTurn {
   /** Hash of the stored Turn object — what records are grounded to. */
@@ -12,27 +15,6 @@ export interface ChatTurn {
 
 /** Anything that can answer a prompt with text. */
 export type Complete = (system: string, user: string) => Promise<string>;
-
-const FENCE = /(^|\n)(```|~~~)[^\n]*\n[\s\S]*?(\n\2[ \t]*(?=\n|$)|$)/g;
-
-/** Remove fenced code blocks. "We trust you over there." */
-export function stripCode(text: string): string {
-  return text.replace(FENCE, "$1[code omitted]").replace(/\n{3,}/g, "\n\n").trim();
-}
-
-/** Split text into prose and code segments, keeping code verbatim. */
-export function splitCode(text: string): { kind: "prose" | "code"; text: string }[] {
-  const out: { kind: "prose" | "code"; text: string }[] = [];
-  let last = 0;
-  for (const m of text.matchAll(FENCE)) {
-    const start = m.index! + m[1].length;
-    if (start > last) out.push({ kind: "prose", text: text.slice(last, start) });
-    out.push({ kind: "code", text: text.slice(start, m.index! + m[0].length) });
-    last = m.index! + m[0].length;
-  }
-  if (last < text.length) out.push({ kind: "prose", text: text.slice(last) });
-  return out.filter((s) => s.text.trim());
-}
 
 export const SYSTEM_PROMPT = `You extract DECISIONS from a conversation between a human and an AI coding agent.
 
@@ -112,7 +94,7 @@ export async function extractDecisions(
   active: { hash: string; record: DecisionRecord }[],
   complete: Complete
 ): Promise<NewDecision[]> {
-  const meaningful = turns.filter((t) => stripCode(t.text).replace(/\[code omitted\]/g, "").trim());
+  const meaningful = turns.filter((t) => stripCode(t.text).split(CODE_PLACEHOLDER).join("").trim());
   if (!meaningful.length) return [];
   const raw = await complete(SYSTEM_PROMPT, buildPrompt(meaningful, active.map((a) => a.record)));
   return parseDecisions(raw, meaningful, active);

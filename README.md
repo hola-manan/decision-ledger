@@ -39,7 +39,7 @@ node    { parent → node, message, origin, added: [record], state: [every recor
 - **Grounded:** every record points to a stored turn. A quote is kept only if it appears word for word in that turn.
 - **Tree:** nodes chain through `parent`. Branches live in `refs/heads/`, and `HEAD` works just like it does in git.
 - **Superseded:** a later decision can replace an earlier one. Both stay in history, and only the newer one is *active*.
-- **No code:** fenced code blocks and file-writing tool inputs are never sent to the extraction model.
+- **No code:** fenced code blocks and file-writing tool inputs are never sent to the extraction model. Unfenced code (e.g. a paste with no ```) is detected on a best-effort basis: runs of 3+ code-like lines, including diffs, HTML/XML and SQL, are removed too. Snippets of one or two lines, YAML and plain shell commands can still get through, so fence code you paste if it must not leave your machine.
 
 Commit `.ledger/` with your repo if you want the decision history to travel with the code.
 

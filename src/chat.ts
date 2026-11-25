@@ -5,7 +5,7 @@
 import * as vscode from "vscode";
 import { randomUUID } from "crypto";
 import type { Ledger } from "./core/store";
-import { splitCode } from "./core/engine";
+import { asMarkdownCode, splitCode } from "./core/engine";
 import { ingest } from "./core/ingest";
 import { getEngine, collect } from "./provider";
 import { cmdLink, recordLine, stateDoc } from "./render";
@@ -83,7 +83,7 @@ export function registerChat(ctx: vscode.ExtensionContext, getLedger: () => Ledg
 
     // 2. Code passes straight through.
     const code = splitCode(fullText).filter((s) => s.kind === "code");
-    for (const c of code) stream.markdown(c.text + "\n");
+    for (const c of code) stream.markdown(asMarkdownCode(c.text) + "\n");
 
     // 3. Everything else becomes decision records.
     stream.progress("Recording decisions…");

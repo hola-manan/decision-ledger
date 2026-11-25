@@ -4,9 +4,9 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { Ledger } from "../src/core/store";
-import { stripCode, splitCode, parseDecisions, extractDecisions } from "../src/core/engine";
+import { stripCode, splitCode, asMarkdownCode, parseDecisions, extractDecisions } from "../src/core/engine";
 import { ingest } from "../src/core/ingest";
-import { parseClaudeCodeLines, findSessionFiles } from "../src/core/transcript";
+import { parseClaudeCodeLines, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "ledger-"));
 
@@ -16,6 +16,82 @@ test("stripCode removes fenced code, keeps prose", () => {
   const parts = splitCode(t);
   assert.deepEqual(parts.map((p) => p.kind), ["prose", "code", "prose"]);
   assert.ok(parts[1].text.includes("const x = 1;"));
+});
+
+test("stripCode removes unfenced pasted code, keeps prose around it", () => {
+  const paste = [
+    "Here's my current config, keep it but switch to Postgres.",
+    "import { db } from './db';",
+    "",
+    "export const config = {",
+    "  host: 'localhost',",
+    "  retries: 3,",
+    "};",
+    "Also drop the retries.",
+  ].join("\n");
+  assert.equal(
+    stripCode(paste),
+    "Here's my current config, keep it but switch to Postgres.\n[code omitted]\nAlso drop the retries."
+  );
+  const code = splitCode(paste).filter((s) => s.kind === "code");
+  assert.equal(code.length, 1);
+  assert.ok(code[0].text.startsWith("import { db }") && code[0].text.endsWith("};"));
+});
+
+test("stripCode leaves prose alone even with code-ish punctuation", () => {
+  const prose = [
+    "We decided two things; both are final.",
+    "First, use Postgres (not SQLite).",
+    "- Keep the schema flat",
+    "- Add an index on user_id",
+    "Each card shows:",
+    "- the product name, brand and price;",
+    "- \"why it's for you\", tied to your saves;",
+    "- `/api/...` paths with no `/v1`;",
+    "1. retries (max 3);",
+    "Status: done.",
+  ].join("\n");
+  assert.equal(stripCode(prose), prose);
+});
+
+test("stripCode keeps lowercase chat prose, including lists and lines ending in ':'", () => {
+  const prose = [
+    "for the api:",
+    "  - use rest, no graphql",
+    "if auth is needed:",
+    "  - use jwt",
+    "with that in mind:",
+    "let's also add logging (pino)",
+  ].join("\n");
+  assert.equal(stripCode(prose), prose);
+});
+
+test("stripCode keeps prose that merely starts like code: '/*', '-   ' lists, all-caps SQL words", () => {
+  const cases = [
+    ["Quick notes", "/* not sure about this yet", "We'll use Postgres for storage.", "We will not add Redis.", "Ship on Friday."],
+    ["/*.log files and build output", "should be ignored by git.", "We agreed on that."],
+    ["Decisions:", "-   use postgres;", "-   drop redis;", "-   keep the api flat;", "That's all."],
+    ["FROM now on we use Postgres.", "SET the default timeout to 5s.", "DROP the Redis cache entirely."],
+  ];
+  for (const lines of cases) assert.equal(stripCode(lines.join("\n")), lines.join("\n"));
+});
+
+test("stripCode removes unfenced diffs, markup, SQL and trailing indented code", () => {
+  const cases = [
+    ["diff --git a/x.ts b/x.ts", "@@ -1,3 +1,3 @@", "   const a = 1;", "-  const retries = 3;", "+  const retries = 5;", "+  return secret"],
+    ['<div class="card">', '  <h2 class="title">Hi</h2>', "  <p>{body}</p>", "</div>"],
+    ["SELECT id, name", "FROM users", "WHERE active = true", "ORDER BY name;"],
+    ["x = 1", "y = 2", "def f():", "    return compute_total", "    secret_logic_here"],
+    ["/**", " * Store layout:", " * - turn : one chat message", " */", "export class Ledger {", "}"],
+  ];
+  for (const lines of cases) {
+    assert.equal(stripCode(`Look at this:\n${lines.join("\n")}\nThoughts?`), "Look at this:\n[code omitted]\nThoughts?");
+  }
+});
+
+test("asMarkdownCode wraps unfenced code in a fence it can't close early", () => {
+  assert.equal(asMarkdownCode("```ts\nx\n```"), "```ts\nx\n```");
+  assert.equal(asMarkdownCode("a = 1\n  ```\nb = 2"), "````\na = 1\n  ```\nb = 2\n````");
 });
 
 test("store: ordered records, nodes form a chain, state accumulates", () => {
@@ -164,5 +240,22 @@ test("transcript: finds session files for a workspace", () => {
   const other = path.join(root, "weird");
   fs.mkdirSync(other);
   fs.writeFileSync(path.join(other, "t.jsonl"), JSON.stringify({ cwd: path.join(ws, "sub") }) + "\n");
+  const sibling = path.join(root, "sibling");
+  fs.mkdirSync(sibling);
+  fs.writeFileSync(path.join(sibling, "u.jsonl"), JSON.stringify({ cwd: ws + "-old" }) + "\n");
   assert.equal(findSessionFiles(root, ws).length, 2);
+});
+
+test("transcript: workspace matching handles Windows path forms and prefix collisions", () => {
+  const win = (candidate: string, workspace: string) => isInsideWorkspace(candidate, workspace, "win32");
+  assert.ok(win("c:\\Users\\me\\proj", "C:\\Users\\me\\proj"));
+  assert.ok(win("C:\\USERS\\me\\proj\\sub", "c:\\Users\\me\\proj"));
+  assert.ok(win("/c/Users/me/proj/sub", "c:\\Users\\me\\proj"));
+  assert.ok(!win("c:\\Users\\me\\project", "c:\\Users\\me\\proj"));
+  assert.ok(!win("d:\\Users\\me\\proj", "c:\\Users\\me\\proj"));
+
+  const posix = (candidate: string, workspace: string) => isInsideWorkspace(candidate, workspace, "linux");
+  assert.ok(posix("/home/me/proj/sub", "/home/me/proj"));
+  assert.ok(!posix("/home/me/project", "/home/me/proj"));
+  assert.ok(!posix("/home/me/Proj", "/home/me/proj"));
 });
