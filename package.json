@@ -1,0 +1,231 @@
+{
+  "name": "decision-ledger",
+  "displayName": "Decision Ledger",
+  "description": "Turns your AI agent conversations into grounded, ordered decision records in a git-style tree. Code passes straight through.",
+  "version": "0.1.0",
+  "publisher": "decision-ledger",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "main": "./out/src/extension.js",
+  "bin": {
+    "ledger": "./out/src/cli.js"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "decision-ledger.ledger",
+        "name": "ledger",
+        "fullName": "Decision Ledger",
+        "description": "Ask the agent. You get the code and the decisions, not the essay.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "state",
+            "description": "Show active decisions at HEAD"
+          },
+          {
+            "name": "log",
+            "description": "Show recent nodes"
+          }
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ledger",
+          "title": "Decision Ledger",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ledger": [
+        {
+          "id": "ledger.tree",
+          "name": "Decisions"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "ledger.tree",
+        "contents": "No decisions yet.\n\nChat with **@ledger** in the Chat view, or run Claude Code in this workspace. Decisions show up here as ordered nodes.\n\n[Set Anthropic API Key](command:ledger.setApiKey) (optional, otherwise Copilot models are used)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ledger.refresh",
+        "title": "Refresh",
+        "category": "Ledger",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ledger.showCurrent",
+        "title": "Show Current Decisions",
+        "category": "Ledger",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "ledger.showState",
+        "title": "Show State at Node",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.diffParent",
+        "title": "Diff with Parent",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.branchHere",
+        "title": "Create Branch Here",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.checkout",
+        "title": "Switch Branch",
+        "category": "Ledger",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "ledger.setApiKey",
+        "title": "Set Anthropic API Key",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.toggleAgentWatch",
+        "title": "Toggle Agent Watching",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.openRecord",
+        "title": "Open Decision Source",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.showText",
+        "title": "Show Text",
+        "category": "Ledger"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ledger.showCurrent",
+          "when": "view == ledger.tree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ledger.checkout",
+          "when": "view == ledger.tree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ledger.refresh",
+          "when": "view == ledger.tree",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ledger.showState",
+          "when": "view == ledger.tree && viewItem == node",
+          "group": "1@1"
+        },
+        {
+          "command": "ledger.diffParent",
+          "when": "view == ledger.tree && viewItem == node",
+          "group": "1@2"
+        },
+        {
+          "command": "ledger.branchHere",
+          "when": "view == ledger.tree && viewItem == node",
+          "group": "2@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ledger.openRecord",
+          "when": "false"
+        },
+        {
+          "command": "ledger.showText",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Decision Ledger",
+      "properties": {
+        "ledger.engine.provider": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "vscode",
+            "anthropic"
+          ],
+          "default": "auto",
+          "description": "Model used to extract decisions. auto = Anthropic if an API key is set, otherwise a VS Code language model (e.g. Copilot)."
+        },
+        "ledger.engine.anthropicModel": {
+          "type": "string",
+          "default": "claude-haiku-5-5"
+        },
+        "ledger.engine.vscodeModelFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Optional VS Code model family to use for extraction (e.g. gpt-4o). Empty = same model as the chat."
+        },
+        "ledger.agents.watchClaudeCode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Turn Claude Code sessions in this workspace into decision records."
+        },
+        "ledger.agents.claudeProjectsDir": {
+          "type": "string",
+          "default": "",
+          "description": "Override ~/.claude/projects."
+        },
+        "ledger.agents.importExisting": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also process sessions that existed before the extension started."
+        },
+        "ledger.agents.idleSeconds": {
+          "type": "number",
+          "default": 20,
+          "description": "Process an agent's new turns once it has been quiet this long."
+        },
+        "ledger.agents.pollSeconds": {
+          "type": "number",
+          "default": 5
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "tsc -p . && node --test out/test/*.test.js",
+    "package": "tsc -p . && vsce package --no-dependencies"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://example.invalid/decision-ledger"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^4.1.1",
+    "typescript": "^5.9.3"
+  }
+}
