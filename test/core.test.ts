@@ -121,14 +121,48 @@ test("transcript: Claude Code JSONL to turns, code dropped", () => {
   assert.ok(t[1].text.includes("Done."));
 });
 
+test("transcript: harness messages are not attributed to the human", () => {
+  const user = (uuid: string, content: unknown, origin?: unknown) =>
+    JSON.stringify({ type: "user", sessionId: "S", uuid, origin, message: { role: "user", content } });
+  const lines = [
+    user("u1", "Use SQLite for now", { kind: "human" }),
+    JSON.stringify({ type: "assistant", uuid: "a1", message: { content: [{ type: "text", text: "Starting a subagent." }] } }),
+    user("n1", "<task-notification>Agent finished: picked Postgres</task-notification>", { kind: "task-notification" }),
+    user("n2", "<task-notification>Legacy log, no origin tag</task-notification>"),
+    user("i1", [{ type: "text", text: "[Request interrupted by user]" }]),
+    user("c1", "<command-name>/clear</command-name>"),
+    user("h2", [
+      { type: "text", text: "<ide_opened_file>The user opened db.ts</ide_opened_file>" },
+      { type: "text", text: "Keep the schema flat" },
+      { type: "text", text: "<system-reminder>Be concise.</system-reminder>" },
+    ], { kind: "human" }),
+    user("h3", "<ide_selection>const x = 1;</ide_selection>\nMake this async", { kind: "human" }),
+    JSON.stringify({
+      type: "user", uuid: "s1", isCompactSummary: true, isVisibleInTranscriptOnly: true,
+      message: { content: "This session is being continued from a previous conversation. We chose Postgres." },
+    }),
+  ];
+  const t = parseClaudeCodeLines(lines);
+  assert.deepEqual(
+    t.map((x) => [x.author, x.text]),
+    [
+      ["human", "Use SQLite for now"],
+      ["ai", "Starting a subagent."],
+      ["human", "Keep the schema flat"],
+      ["human", "Make this async"],
+    ]
+  );
+});
+
 test("transcript: finds session files for a workspace", () => {
   const root = tmp();
-  const ws = "/home/me/proj";
-  const d = path.join(root, ws.replace(/[^a-zA-Z0-9]/g, "-"));
+  // Native absolute path, so the encoded folder name matches on Windows and POSIX alike.
+  const ws = path.join(tmp(), "proj");
+  const d = path.join(root, path.resolve(ws).replace(/[^a-zA-Z0-9]/g, "-"));
   fs.mkdirSync(d);
   fs.writeFileSync(path.join(d, "s.jsonl"), "");
   const other = path.join(root, "weird");
   fs.mkdirSync(other);
-  fs.writeFileSync(path.join(other, "t.jsonl"), JSON.stringify({ cwd: "/home/me/proj/sub" }) + "\n");
+  fs.writeFileSync(path.join(other, "t.jsonl"), JSON.stringify({ cwd: path.join(ws, "sub") }) + "\n");
   assert.equal(findSessionFiles(root, ws).length, 2);
 });

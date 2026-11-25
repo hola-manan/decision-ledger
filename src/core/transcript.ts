@@ -23,30 +23,24 @@ function describeTool(name: string, input: any): string {
   return `[${name}]`;
 }
 
+/**
+ * Elements Claude Code injects into "user" messages that the human never typed:
+ * slash-command plumbing, reminders, subagent completion notices, and IDE context
+ * (which can carry selected code). Stripped as whole elements so any prose the
+ * human typed alongside them in the same block survives.
+ */
+const HARNESS_ELEMENT =
+  /<(command-[\w-]+|local-command-[\w-]+|system-reminder|task-notification|ide_[\w-]+)\b[^>]*>[\s\S]*?<\/\1>/g;
+const INTERRUPT_MARKER = /\[Request interrupted by user[^\]]*\]/g;
+
 /** Parse JSONL lines into turns. Unknown or malformed lines are skipped. */
 export function parseClaudeCodeLines(lines: string[]): RawTurn[] {
   const out: RawTurn[] = [];
   for (const line of lines) {
-    if (!line.trim()) continue;
-    let e: any;
-    try {
-      e = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    if ((e.type !== "user" && e.type !== "assistant") || e.isSidechain || e.isMeta) continue;
-    const content = e.message?.content;
-    const parts: string[] = [];
-    if (typeof content === "string") parts.push(content);
-    else if (Array.isArray(content)) {
-      for (const c of content) {
-        if (c?.type === "text" && typeof c.text === "string") parts.push(c.text);
-        else if (c?.type === "tool_use") parts.push(describeTool(c.name, c.input));
-        // tool_result, thinking, images: skipped
-      }
-    }
-    const text = parts.filter(Boolean).join("\n").trim();
-    if (!text || /^<(command|local-command|system-reminder)/.test(text)) continue;
+    const e = parseJsonLine(line);
+    if (!e || !isConversationEntry(e)) continue;
+    const text = entryText(e);
+    if (!text) continue;
     const author: Author = e.type === "user" ? "human" : "ai";
     const prev = out[out.length - 1];
     // Merge consecutive assistant fragments into one turn.
@@ -63,6 +57,52 @@ export function parseClaudeCodeLines(lines: string[]): RawTurn[] {
     });
   }
   return out;
+}
+
+function parseJsonLine(line: string): any {
+  if (!line.trim()) return null;
+  try {
+    return JSON.parse(line);
+  } catch {
+    return null;
+  }
+}
+
+/** A main-thread user/assistant message that belongs in the conversation. */
+function isConversationEntry(e: any): boolean {
+  if (e.type !== "user" && e.type !== "assistant") return false;
+  if (e.isSidechain || e.isMeta) return false;
+  // Context-compaction summaries are AI-written recaps stored as "user" entries.
+  if (e.isCompactSummary || e.isVisibleInTranscriptOnly) return false;
+  if (e.type === "assistant") return true;
+  // Newer logs tag where a user message came from; only "human" ones were typed by the person.
+  // Deliberately an allowlist: unknown future kinds are rejected rather than credited to the human.
+  // Older logs have no tag, so those rely on harness-text stripping instead.
+  const originKind = e.origin?.kind;
+  return originKind === undefined || originKind === "human";
+}
+
+/** The entry's prose plus one-line tool notes. Tool results, thinking, images and harness text are dropped. */
+function entryText(e: any): string {
+  const parts: string[] = [];
+  for (const block of contentBlocks(e.message?.content)) {
+    if (block?.type === "text" && typeof block.text === "string") {
+      parts.push(withoutHarnessText(block.text));
+    } else if (block?.type === "tool_use") {
+      parts.push(describeTool(block.name, block.input));
+    }
+  }
+  return parts.filter(Boolean).join("\n").trim();
+}
+
+function contentBlocks(content: unknown): any[] {
+  if (typeof content === "string") return [{ type: "text", text: content }];
+  if (Array.isArray(content)) return content;
+  return [];
+}
+
+function withoutHarnessText(text: string): string {
+  return text.replace(HARNESS_ELEMENT, "").replace(INTERRUPT_MARKER, "").trim();
 }
 
 /** Find Claude Code session files whose recorded cwd is inside `workspace`. */
