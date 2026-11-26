@@ -54,7 +54,7 @@ export function stateDoc(ledger: Ledger, nodeHash: string): string {
     ...all.filter((a) => active.has(a.hash)).map((a) => "- " + recordLine(a.hash, a.record)),
   ];
   const dead = all.filter((a) => !active.has(a.hash));
-  if (dead.length) lines.push(``, `## Superseded`, ``, ...dead.map((a) => "- ~~" + `#${a.record.seq} ${a.record.decision}` + "~~"));
+  if (dead.length) lines.push(``, `## Superseded`, ``, ...dead.map((a) => `- #${a.record.seq} ${a.record.decision}`));
   return lines.join("\n");
 }
 
