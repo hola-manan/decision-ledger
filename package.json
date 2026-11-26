@@ -60,7 +60,7 @@
     "viewsWelcome": [
       {
         "view": "ledger.tree",
-        "contents": "No decisions yet.\n\nChat with **@ledger** in the Chat view, or run Claude Code in this workspace. Decisions show up here as ordered nodes.\n\n[Set Anthropic API Key](command:ledger.setApiKey) (optional, otherwise Copilot models are used)"
+        "contents": "No decisions yet.\n\nChat with **@ledger** in the Chat view, or run Claude Code in this workspace. Decisions show up here as ordered nodes.\n\n[Set Anthropic API Key](command:ledger.setApiKey) or [Set Vertex AI (Gemini) API Key](command:ledger.setGeminiApiKey) (optional, otherwise Copilot models are used)"
       }
     ],
     "commands": [
@@ -100,6 +100,11 @@
       {
         "command": "ledger.setApiKey",
         "title": "Set Anthropic API Key",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.setGeminiApiKey",
+        "title": "Set Vertex AI (Gemini) API Key",
         "category": "Ledger"
       },
       {
@@ -172,14 +177,20 @@
           "enum": [
             "auto",
             "vscode",
-            "anthropic"
+            "anthropic",
+            "gemini"
           ],
           "default": "auto",
-          "description": "Model used to extract decisions. auto = Anthropic if an API key is set, otherwise a VS Code language model (e.g. Copilot)."
+          "description": "Model used to extract decisions. auto = Anthropic if its API key is set, else Gemini if its key is set, otherwise a VS Code language model (e.g. Copilot)."
         },
         "ledger.engine.anthropicModel": {
           "type": "string",
           "default": "claude-haiku-5-5"
+        },
+        "ledger.engine.geminiModel": {
+          "type": "string",
+          "default": "gemini-3.8-flash",
+          "description": "Gemini model used through Vertex AI express mode."
         },
         "ledger.engine.vscodeModelFamily": {
           "type": "string",

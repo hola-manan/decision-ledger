@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
 import type { Complete } from "./core/engine";
-import { anthropicComplete } from "./core/anthropic";
+import { anthropicComplete, DEFAULT_ANTHROPIC_MODEL } from "./core/anthropic";
+import { DEFAULT_GEMINI_MODEL, geminiComplete } from "./core/gemini";
 
 export const SECRET_KEY = "ledger.anthropicApiKey";
+export const GEMINI_SECRET_KEY = "ledger.geminiApiKey";
 
 async function collect(resp: vscode.LanguageModelChatResponse, token?: vscode.CancellationToken): Promise<string> {
   let s = "";
@@ -24,20 +26,28 @@ export function vscodeComplete(model: vscode.LanguageModelChat): Complete {
   };
 }
 
-/** Pick the engine's model: Anthropic key if set (or forced), otherwise a VS Code language model. */
+/**
+ * Pick the engine's model: an API provider if forced or (in auto) if its key is set,
+ * Anthropic first, then Gemini; otherwise a VS Code language model.
+ */
 export async function getEngine(ctx: vscode.ExtensionContext, preferred?: vscode.LanguageModelChat): Promise<Complete> {
   const cfg = vscode.workspace.getConfiguration("ledger");
   const provider = cfg.get<string>("engine.provider", "auto");
-  const key = await ctx.secrets.get(SECRET_KEY);
-  if (provider === "anthropic" || (provider === "auto" && key)) {
-    if (!key) throw new Error("No Anthropic API key. Run 'Ledger: Set Anthropic API Key'.");
-    return anthropicComplete(key, cfg.get<string>("engine.anthropicModel", "claude-haiku-5-5"));
+  const anthropicKey = await ctx.secrets.get(SECRET_KEY);
+  if (provider === "anthropic" || (provider === "auto" && anthropicKey)) {
+    if (!anthropicKey) throw new Error("No Anthropic API key. Run 'Ledger: Set Anthropic API Key'.");
+    return anthropicComplete(anthropicKey, cfg.get<string>("engine.anthropicModel", DEFAULT_ANTHROPIC_MODEL));
+  }
+  const geminiKey = await ctx.secrets.get(GEMINI_SECRET_KEY);
+  if (provider === "gemini" || (provider === "auto" && geminiKey)) {
+    if (!geminiKey) throw new Error("No Gemini API key. Run 'Ledger: Set Vertex AI (Gemini) API Key'.");
+    return geminiComplete(geminiKey, cfg.get<string>("engine.geminiModel", DEFAULT_GEMINI_MODEL));
   }
   const family = cfg.get<string>("engine.vscodeModelFamily", "");
   const models = await vscode.lm.selectChatModels(family ? { family } : {});
   const model = (!family && preferred) || models[0];
   if (!model) {
-    throw new Error("No language model available. Install GitHub Copilot Chat or set an Anthropic API key ('Ledger: Set Anthropic API Key').");
+    throw new Error("No language model available. Sign in to GitHub Copilot, or set an API key ('Ledger: Set Anthropic API Key' / 'Ledger: Set Vertex AI (Gemini) API Key').");
   }
   return vscodeComplete(model);
 }

@@ -3,7 +3,7 @@ import { Ledger, LedgerNode, DecisionRecord } from "./core/store";
 import { shortHash } from "./core/ingest";
 import { registerChat } from "./chat";
 import { AgentWatcher } from "./watcher";
-import { SECRET_KEY } from "./provider";
+import { GEMINI_SECRET_KEY, SECRET_KEY } from "./provider";
 import { diffDoc, recordDoc, stateDoc } from "./render";
 
 function ago(iso: string): string {
@@ -154,16 +154,8 @@ export function activate(ctx: vscode.ExtensionContext) {
         }
       })
     ),
-    vscode.commands.registerCommand(
-      "ledger.setApiKey",
-      run(async () => {
-        const key = await vscode.window.showInputBox({ prompt: "Anthropic API key (stored in VS Code secret storage)", password: true });
-        if (key === undefined) return;
-        if (key) await ctx.secrets.store(SECRET_KEY, key.trim());
-        else await ctx.secrets.delete(SECRET_KEY);
-        vscode.window.showInformationMessage(key ? "Ledger: API key saved." : "Ledger: API key removed.");
-      })
-    ),
+    vscode.commands.registerCommand("ledger.setApiKey", run(() => promptForApiKey(ctx, SECRET_KEY, "Anthropic"))),
+    vscode.commands.registerCommand("ledger.setGeminiApiKey", run(() => promptForApiKey(ctx, GEMINI_SECRET_KEY, "Gemini (Vertex AI express mode)"))),
     vscode.commands.registerCommand("ledger.toggleAgentWatch", () => {
       if (watcher.running) watcher.stop();
       else watcher.start();
@@ -173,3 +165,13 @@ export function activate(ctx: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
+/** Store (or, if left empty, remove) an API key in VS Code's secret storage. */
+async function promptForApiKey(ctx: vscode.ExtensionContext, secretKey: string, providerName: string) {
+  const key = await vscode.window.showInputBox({ prompt: `${providerName} API key (stored in VS Code secret storage)`, password: true });
+  if (key === undefined) return;
+  const trimmed = key.trim();
+  if (trimmed) await ctx.secrets.store(secretKey, trimmed);
+  else await ctx.secrets.delete(secretKey);
+  vscode.window.showInformationMessage(`Ledger: ${providerName} API key ${trimmed ? "saved" : "removed"}.`);
+}

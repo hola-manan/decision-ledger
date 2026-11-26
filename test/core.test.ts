@@ -6,6 +6,7 @@ import * as path from "path";
 import { Ledger } from "../src/core/store";
 import { stripCode, splitCode, asMarkdownCode, parseDecisions, extractDecisions } from "../src/core/engine";
 import { ingest } from "../src/core/ingest";
+import { geminiComplete } from "../src/core/gemini";
 import { parseClaudeCodeLines, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "ledger-"));
@@ -92,6 +93,50 @@ test("stripCode removes unfenced diffs, markup, SQL and trailing indented code",
 test("asMarkdownCode wraps unfenced code in a fence it can't close early", () => {
   assert.equal(asMarkdownCode("```ts\nx\n```"), "```ts\nx\n```");
   assert.equal(asMarkdownCode("a = 1\n  ```\nb = 2"), "````\na = 1\n  ```\nb = 2\n````");
+});
+
+test("gemini: sends system + user to Vertex express with the key in a header, returns the text", async () => {
+  const realFetch = globalThis.fetch;
+  let sent: { url: string; init: any } | undefined;
+  globalThis.fetch = (async (url: string, init: any) => {
+    sent = { url, init };
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"decisions":' }, { text: "[]}" }] } }] }));
+  }) as typeof fetch;
+  try {
+    const text = await geminiComplete("KEY123", "gemini-3.8-flash")("SYS", "USER");
+    assert.equal(text, '{"decisions":[]}');
+    assert.equal(sent!.url, "https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-3.8-flash:generateContent");
+    assert.ok(!sent!.url.includes("KEY123"));
+    assert.equal(new Headers(sent!.init.headers).get("x-goog-api-key"), "KEY123");
+    const body = JSON.parse(sent!.init.body);
+    assert.equal(body.systemInstruction.parts[0].text, "SYS");
+    assert.equal(body.contents[0].parts[0].text, "USER");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("gemini: API errors surface status without the key", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("quota exceeded", { status: 429 })) as unknown as typeof fetch;
+  try {
+    await assert.rejects(geminiComplete("KEY123", "m")("s", "u"), (e: Error) => /429/.test(e.message) && !e.message.includes("KEY123"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("gemini: a blocked or empty answer says why instead of returning empty text", async () => {
+  const realFetch = globalThis.fetch;
+  const respond = (body: unknown) => (async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
+  try {
+    globalThis.fetch = respond({ promptFeedback: { blockReason: "SAFETY" } });
+    await assert.rejects(geminiComplete("k", "m")("s", "u"), /no text \(SAFETY\)/);
+    globalThis.fetch = respond({ candidates: [{ content: { parts: [] }, finishReason: "MAX_TOKENS" }] });
+    await assert.rejects(geminiComplete("k", "m")("s", "u"), /no text \(MAX_TOKENS\)/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test("store: ordered records, nodes form a chain, state accumulates", () => {

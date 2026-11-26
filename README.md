@@ -18,7 +18,10 @@ code --install-extension decision-ledger-0.1.0.vsix
 
 You need a model for extraction. You can use either:
 - **GitHub Copilot Chat** (used automatically through VS Code's language model API), or
-- an Anthropic key: run **Ledger: Set Anthropic API Key**. It's stored in VS Code's secret storage. The default model is `claude-haiku-5-5`.
+- an Anthropic key: run **Ledger: Set Anthropic API Key**. It's stored in VS Code's secret storage. The default model is `claude-haiku-5-5`, or
+- a Gemini key for Vertex AI express mode: run **Ledger: Set Vertex AI (Gemini) API Key**. Also stored in secret storage. The default model is `gemini-3.8-flash` (`ledger.engine.geminiModel`).
+
+With `ledger.engine.provider` on `auto`, an Anthropic key wins, then a Gemini key, then Copilot.
 
 ## Use it
 
@@ -50,6 +53,7 @@ npx ledger log | state [node] | show <hash> | diff <a> <b> | branch [name [at]] 
 echo '[{"author":"human","text":"..."},{"author":"ai","text":"..."}]' \
   | ANTHROPIC_API_KEY=... npx ledger ingest --origin my-agent --session run-42
 ```
+`ingest` uses `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` (Vertex AI express mode) if that's the only one set. `LEDGER_MODEL` overrides the model.
 
 ## Develop
 

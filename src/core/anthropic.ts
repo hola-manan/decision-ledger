@@ -1,5 +1,7 @@
 import type { Complete } from "./engine";
 
+export const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5";
+
 export function anthropicComplete(apiKey: string, model: string): Complete {
   return async (system, user) => {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
