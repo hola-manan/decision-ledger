@@ -83,6 +83,13 @@ export function activate(ctx: vscode.ExtensionContext) {
 
   const watcher = new AgentWatcher(ctx, getLedger, root, out, refresh);
   if (vscode.workspace.workspaceFolders && vscode.workspace.getConfiguration("ledger").get("agents.watchClaudeCode", true)) watcher.start();
+  // A new key or engine setting may fix a failing watcher; don't make it wait out the backoff.
+  ctx.subscriptions.push(
+    ctx.secrets.onDidChange(() => watcher.retryNow()),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("ledger.engine")) watcher.retryNow();
+    })
+  );
 
   const pickNode = async (item?: Item): Promise<string | undefined> => {
     if (item?.kind === "node") return item.hash;

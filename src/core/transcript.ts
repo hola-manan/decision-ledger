@@ -13,6 +13,8 @@ export interface RawTurn {
   externalId: string;
   timestamp: string;
   session: string;
+  /** Byte offset just past the turn's last source line, when parsed with a start offset. */
+  endOffset?: number;
 }
 
 function describeTool(name: string, input: any): string {
@@ -33,30 +35,49 @@ const HARNESS_ELEMENT =
   /<(command-[\w-]+|local-command-[\w-]+|system-reminder|task-notification|ide_[\w-]+)\b[^>]*>[\s\S]*?<\/\1>/g;
 const INTERRUPT_MARKER = /\[Request interrupted by user[^\]]*\]/g;
 
-/** Parse JSONL lines into turns. Unknown or malformed lines are skipped. */
-export function parseClaudeCodeLines(lines: string[]): RawTurn[] {
-  const out: RawTurn[] = [];
+/**
+ * Parse JSONL lines into turns. Unknown or malformed lines are skipped. With
+ * `startOffset` (the byte position of the first line in its file), each turn records
+ * where its last source line ends, so a reader can resume right after it.
+ */
+export function parseClaudeCodeLines(lines: string[], startOffset?: number): RawTurn[] {
+  const turns: RawTurn[] = [];
+  let position = startOffset ?? 0;
   for (const line of lines) {
+    position += Buffer.byteLength(line, "utf8") + 1;
     const e = parseJsonLine(line);
     if (!e || !isConversationEntry(e)) continue;
     const text = entryText(e);
     if (!text) continue;
-    const author: Author = e.type === "user" ? "human" : "ai";
-    const prev = out[out.length - 1];
-    // Merge consecutive assistant fragments into one turn.
-    if (prev && prev.author === author && author === "ai") {
-      prev.text += "\n" + text;
-      continue;
-    }
-    out.push({
-      author,
+    appendTurn(turns, {
+      author: e.type === "user" ? "human" : "ai",
       text,
       externalId: String(e.uuid ?? ""),
       timestamp: String(e.timestamp ?? new Date().toISOString()),
       session: String(e.sessionId ?? ""),
+      endOffset: startOffset === undefined ? undefined : position,
     });
   }
-  return out;
+  return turns;
+}
+
+/** Add turns read later (e.g. on the next poll), applying the same merge rule across reads. */
+export function appendTurns(turns: RawTurn[], more: RawTurn[]): void {
+  for (const turn of more) appendTurn(turns, turn);
+}
+
+/** Consecutive AI fragments (the text between an agent's tool calls) form one turn. */
+function appendTurn(turns: RawTurn[], turn: RawTurn): void {
+  const prev = turns[turns.length - 1];
+  if (prev?.author === "ai" && turn.author === "ai") {
+    prev.text += "\n" + turn.text;
+    // Chunks of one source turn share an endOffset (see core/batches); move them all
+    // together, or a batch could end between them and save an offset past unsent text.
+    const oldEnd = prev.endOffset;
+    for (let i = turns.length - 1; i >= 0 && turns[i].endOffset === oldEnd; i--) turns[i].endOffset = turn.endOffset;
+    return;
+  }
+  turns.push({ ...turn });
 }
 
 function parseJsonLine(line: string): any {

@@ -8,6 +8,12 @@ export interface IngestTurn {
   timestamp?: string;
 }
 
+export interface IngestMeta {
+  origin: string;
+  session: string;
+  message?: string;
+}
+
 /**
  * The full pipeline: store the (code-stripped) turns, extract grounded decisions,
  * and commit them as one new node. Returns the node hash, or null if no decisions.
@@ -16,7 +22,7 @@ export async function ingest(
   ledger: Ledger,
   turns: IngestTurn[],
   complete: Complete,
-  meta: { origin: string; session: string; message?: string }
+  meta: IngestMeta
 ): Promise<{ node: string; records: string[] } | null> {
   const stored: ChatTurn[] = turns.map((t) => ({
     author: t.author,

@@ -1,4 +1,5 @@
 import type { Complete } from "./engine";
+import { ApiError } from "./errors";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 
@@ -25,7 +26,7 @@ export function geminiComplete(apiKey: string, model: string): Complete {
         generationConfig: { responseMimeType: "application/json" },
       }),
     });
-    if (!res.ok) throw new Error(apiErrorMessage(res.status, await res.text()));
+    if (!res.ok) throw new ApiError("gemini", res.status, apiErrorMessage(res.status, await res.text()));
     return responseText((await res.json()) as GenerateContentResponse);
   };
 }

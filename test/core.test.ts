@@ -7,7 +7,12 @@ import { Ledger } from "../src/core/store";
 import { stripCode, splitCode, asMarkdownCode, parseDecisions, extractDecisions } from "../src/core/engine";
 import { ingest } from "../src/core/ingest";
 import { geminiComplete } from "../src/core/gemini";
-import { parseClaudeCodeLines, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
+import { parseClaudeCodeLines, appendTurns, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
+import { chunkTurns, splitText } from "../src/core/chunk";
+import { batchSize, ingestBacklog } from "../src/core/batches";
+import { ApiError } from "../src/core/errors";
+import type { Complete } from "../src/core/engine";
+import { RetryBackoff, FIRST_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS } from "../src/core/backoff";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "ledger-"));
 
@@ -120,7 +125,10 @@ test("gemini: API errors surface status without the key", async () => {
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async () => new Response("quota exceeded", { status: 429 })) as unknown as typeof fetch;
   try {
-    await assert.rejects(geminiComplete("KEY123", "m")("s", "u"), (e: Error) => /429/.test(e.message) && !e.message.includes("KEY123"));
+    await assert.rejects(
+      geminiComplete("KEY123", "m")("s", "u"),
+      (e: Error) => e instanceof ApiError && e.status === 429 && !e.message.includes("KEY123")
+    );
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -273,6 +281,109 @@ test("transcript: harness messages are not attributed to the human", () => {
       ["human", "Make this async"],
     ]
   );
+});
+
+test("transcript: AI fragments merge the same way whether read in one go or across polls", () => {
+  const ai = (uuid: string, text: string) => JSON.stringify({ type: "assistant", uuid, message: { content: [{ type: "text", text }] } });
+  const lines = [JSON.stringify({ type: "user", uuid: "u1", message: { content: "Plan it" } }), ai("a1", "Part one."), ai("a2", "Part two.")];
+  const inOneRead = parseClaudeCodeLines(lines);
+  const acrossPolls = parseClaudeCodeLines(lines.slice(0, 2));
+  appendTurns(acrossPolls, parseClaudeCodeLines(lines.slice(2)));
+  assert.deepEqual(acrossPolls, inOneRead);
+  assert.equal(inOneRead.length, 2);
+  assert.equal(inOneRead[1].text, "Part one.\nPart two.");
+});
+
+test("chunk: long turns are split, not truncated, at natural breaks", () => {
+  const paragraphs = Array.from({ length: 30 }, (_, i) => `Paragraph ${i} decides something about module ${i}.`);
+  const text = paragraphs.join("\n\n");
+  const chunks = splitText(text, 300);
+  assert.ok(chunks.length > 1);
+  assert.ok(chunks.every((c) => c.length <= 300));
+  for (const p of paragraphs) assert.ok(chunks.some((c) => c.includes(p)), `lost: ${p}`);
+  assert.deepEqual(splitText("x".repeat(25), 10), ["x".repeat(10), "x".repeat(10), "x".repeat(5)]);
+});
+
+test("chunk: code is stripped before splitting, so no half code block reaches the model", () => {
+  const code = Array.from({ length: 60 }, (_, i) => `const secret${i} = ${i};`).join("\n");
+  const turn = { author: "ai" as const, text: `Use a config file.\n\`\`\`ts\n${code}\n\`\`\`\nDecided: keep it flat.`, externalId: "a", timestamp: "t", session: "S" };
+  const chunks = chunkTurns([turn], 50);
+  assert.ok(chunks.every((c) => !c.text.includes("secret")));
+  assert.ok(chunks.some((c) => c.text.includes("keep it flat")));
+  assert.ok(chunks.every((c) => c.author === "ai" && c.session === "S"));
+});
+
+test("transcript: with a start offset, each turn records the byte offset after its last line", () => {
+  const lines = [
+    JSON.stringify({ type: "user", uuid: "u1", message: { content: "Use café-style names" } }),
+    JSON.stringify({ type: "assistant", uuid: "a1", message: { content: [{ type: "text", text: "One." }] } }),
+    JSON.stringify({ type: "assistant", uuid: "a2", message: { content: [{ type: "text", text: "Two." }] } }),
+    "",
+  ];
+  const ends = lines.slice(0, 3).reduce<number[]>((acc, l) => [...acc, (acc.at(-1) ?? 100) + Buffer.byteLength(l) + 1], []);
+  const turns = parseClaudeCodeLines(lines, 100);
+  assert.deepEqual(turns.map((t) => t.endOffset), [ends[0], ends[2]]); // merged AI turn ends after its last fragment
+  assert.equal(parseClaudeCodeLines(lines)[0].endOffset, undefined);
+});
+
+test("batches: a batch ends where a source turn ends, unless one turn alone overflows it", () => {
+  const at = (endOffset: number) => ({ author: "ai" as const, text: "x", externalId: "", timestamp: "", session: "", endOffset });
+  assert.equal(batchSize([at(1), at(2), at(2), at(2), at(3)], 3), 1);
+  assert.equal(batchSize([at(1), at(2), at(3), at(4)], 3), 3);
+  assert.equal(batchSize([at(1), at(1), at(1), at(1)], 3), 3);
+  assert.equal(batchSize([at(1), at(2)], 3), 2);
+});
+
+test("batches: new AI text merged into a chunked backlog moves all chunks of that turn together", () => {
+  const ai = (text: string, endOffset: number) => ({ author: "ai" as const, text, externalId: "", timestamp: "", session: "", endOffset });
+  const human = { ...ai("Go", 10), author: "human" as const };
+  const backlog = chunkTurns([human, ai("word ".repeat(30), 50)], 40); // the AI turn becomes several chunks ending at 50
+  assert.ok(backlog.filter((t) => t.endOffset === 50).length > 2);
+  appendTurns(backlog, [ai("More from the same run.", 90)]);
+  assert.deepEqual([...new Set(backlog.map((t) => t.endOffset))], [10, 90]);
+  assert.equal(batchSize(backlog, 3), 1); // only the human turn ends on a boundary within 3
+});
+
+test("batches: a failure part-way keeps committed batches and a retry neither loses nor repeats turns", async () => {
+  const l = Ledger.open(tmp());
+  const turn = (i: number) => ({ author: "human" as const, text: `Decide thing ${i}`, externalId: "", timestamp: "t", session: "S", endOffset: i * 10 });
+  const backlog = [1, 2, 3, 4].map(turn);
+  const oneDecisionPerTurn: Complete = async (_s, user) => {
+    const ids = [...user.matchAll(/<turn id="(\w+)"/g)].map((m) => m[1]);
+    return JSON.stringify({ decisions: ids.map((id) => ({ decision: `Decision for ${id}`, turn: id, author: "human" })) });
+  };
+  let calls = 0;
+  const failsSecondTime: Complete = async (s, u) => {
+    if (++calls === 2) throw new Error("quota exceeded");
+    return oneDecisionPerTurn(s, u);
+  };
+  const saved: number[] = []; // -1 = no safe offset for that batch
+  const meta = { origin: "claude-code", session: "S" };
+  await assert.rejects(ingestBacklog(l, backlog, failsSecondTime, meta, 2, (b) => saved.push(b.safeOffset ?? -1)), /quota/);
+  assert.deepEqual(saved, [20]);
+  assert.equal(backlog.length, 2);
+  assert.equal(l.stateAt().length, 2);
+
+  await ingestBacklog(l, backlog, oneDecisionPerTurn, meta, 2, (b) => saved.push(b.safeOffset ?? -1));
+  assert.deepEqual(saved, [20, 40]);
+  assert.equal(backlog.length, 0);
+  assert.equal(l.stateAt().length, 4);
+  assert.equal(new Set(l.stateAt().map((r) => r.record.decision)).size, 4);
+});
+
+test("backoff: delays double up to a cap, each distinct error is reported once, reset clears it", () => {
+  const b = new RetryBackoff();
+  assert.ok(b.canTry(0));
+  assert.equal(b.fail("no model", 0), true);
+  assert.ok(!b.canTry(FIRST_RETRY_DELAY_MS - 1) && b.canTry(FIRST_RETRY_DELAY_MS));
+  assert.equal(b.fail("no model", 0), false);
+  assert.ok(!b.canTry(2 * FIRST_RETRY_DELAY_MS - 1));
+  for (let i = 0; i < 20; i++) b.fail("no model", 0);
+  assert.ok(b.canTry(MAX_RETRY_DELAY_MS));
+  assert.equal(b.fail("quota exceeded", 0), true);
+  b.reset();
+  assert.ok(b.canTry(0));
+  assert.equal(b.fail("quota exceeded", 0), true);
 });
 
 test("transcript: finds session files for a workspace", () => {
