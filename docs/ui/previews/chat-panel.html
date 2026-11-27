@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="en" class="theme-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat panel preview</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="vscode-theme.css">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js"></script>
+</head>
+<body class="pv">
+
+<!-- ================= PREVIEW ONLY: state switcher ================= -->
+<div class="pv-bar" role="region" aria-label="Preview controls (not part of the design)">
+  <span class="pv-bar__flag">Preview only</span>
+  <a href="index.html">All states</a>
+  <span class="pv-bar__group">
+    <button class="btn btn--secondary" type="button" data-step-state="-1" aria-label="Previous state" title="Previous state"><span class="icon" data-icon="chevron-left"></span></button>
+    <label for="pv-state-select" class="visually-hidden">State</label>
+    <select id="pv-state-select" class="pv-select"></select>
+    <button class="btn btn--secondary" type="button" data-step-state="1" aria-label="Next state" title="Next state"><span class="icon" data-icon="chevron"></span></button>
+  </span>
+  <span class="pv-bar__group" role="group" aria-label="Theme">
+    <button class="btn btn--secondary" type="button" data-set-theme="dark">Dark</button>
+    <button class="btn btn--secondary" type="button" data-set-theme="light">Light</button>
+  </span>
+  <span class="pv-bar__group" role="group" aria-label="Panel width">
+    <button class="btn btn--secondary" type="button" data-set-width="narrow">360</button>
+    <button class="btn btn--secondary" type="button" data-set-width="wide">480</button>
+    <button class="btn btn--secondary" type="button" data-set-width="full">Full</button>
+  </span>
+</div>
+
+<div class="pv-stage">
+<div class="pv-frame" data-width="narrow">
+
+  <!-- Stands in for the VS Code view title bar (contributed via view/title menus, not drawn by the webview). -->
+  <div class="pv-viewtitle">
+    <span class="pv-viewtitle__name">Decision Ledger: Chat</span>
+    <span class="badge" title="Claude is waiting for you">1</span>
+    <button class="btn btn--icon" type="button" aria-label="New conversation" title="New conversation" data-goto="empty"><span class="icon" data-icon="add"></span></button>
+    <button class="btn btn--icon" type="button" aria-label="More actions" title="More actions: Open ledger, Edit decision parameters"><span class="icon" data-icon="ellipsis"></span></button>
+  </div>
+
+  <!-- ============================== 1. Empty ============================== -->
+  <section class="pv-state" data-state="empty" data-label="1 · Empty: new conversation" data-focus="composer" hidden>
+    <div class="chat">
+      <div class="chat__transcript chat__transcript--center">
+        <div class="empty-state">
+          <span class="icon icon--lg empty-state__icon" data-icon="ledger"></span>
+          <h2 class="empty-state__title">Chat with Claude Code</h2>
+          <p class="empty-state__body">This is the Claude Code you already use, working in this project. Its replies are shown as what matters:</p>
+          <ul class="empty-state__list">
+            <li><span class="icon" data-icon="question"></span><span>Questions and permission requests, always in full</span></li>
+            <li><span class="icon" data-icon="git-commit"></span><span>The decisions made, who made them, and their grades</span></li>
+            <li><span class="icon" data-icon="file-diff"></span><span>The files changed, one click from each diff</span></li>
+            <li><span class="icon" data-icon="text"></span><span>The full reply, one click away</span></li>
+          </ul>
+          <p class="meta">Decisions are saved to the ledger on branch <strong>main</strong>.</p>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 2. Permission ============================== -->
+  <section class="pv-state" data-state="permission" data-label="2 · Needs you: permission prompt" data-waiting="true" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply">
+            <header class="response__header">
+              <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            </header>
+            <div class="status status--waiting" role="status">
+              <span class="icon icon--attention" data-icon="shield"></span>
+              <span class="status__text">Waiting for your permission</span>
+              <span class="status__time">0:48</span>
+            </div>
+            <section class="callout callout--warning permission" aria-label="Permission request" data-scroll-anchor>
+              <h3 class="callout__title"><span class="icon icon--warning" data-icon="shield"></span>Allow Bash?</h3>
+              <div class="callout__body">
+                <p>Claude wants to run this command in <strong>signup-service</strong>:</p>
+                <pre class="permission__command"><code>npm install prisma @prisma/client</code></pre>
+                <p class="callout__note">Claude's reason: Install Prisma and its client for Postgres.</p>
+              </div>
+              <div class="callout__actions">
+                <button class="btn btn--primary" type="button" data-goto="working">Allow</button>
+                <button class="btn btn--secondary" type="button" data-goto="working">Allow <code>npm install</code> for this session</button>
+                <button class="btn btn--secondary" type="button" data-goto="working">Deny</button>
+              </div>
+            </section>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-waiting"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 3. Working ============================== -->
+  <section class="pv-state" data-state="working" data-label="3 · Claude working (live status)" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply" aria-busy="true">
+            <header class="response__header">
+              <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+              <span class="sep" aria-hidden="true">·</span><span>Working</span>
+            </header>
+            <div class="status" role="status" aria-live="polite">
+              <span class="icon icon--spin icon--secondary" data-icon="loading"></span>
+              <span class="status__text" title="Editing src/db/client.ts…" data-cycle="Editing src/db/client.ts…|Reading src/users/userRepository.ts…|Editing src/users/userRepository.ts…|Running npm test…|Thinking…">Editing src/db/client.ts…</span>
+              <span class="status__time" data-clock="74">1:14</span>
+            </div>
+            <div data-include="tpl-e2-resolved"></div>
+            <section class="section files">
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed so far <span class="badge">2</span>
+                <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>59</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span></span>
+              </h3>
+              <ul class="file-list">
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">schema.prisma</span><span class="file-row__dir">prisma</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>38</span></span></button></li>
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">client.ts</span><span class="file-row__dir">src/db</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>21</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span></button></li>
+              </ul>
+            </section>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-running"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 4. Question ============================== -->
+  <section class="pv-state" data-state="question" data-label="4 · Needs you: Claude asks a question" data-waiting="true" data-focus="composer" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply">
+            <header class="response__header">
+              <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            </header>
+            <div class="status status--waiting" role="status">
+              <span class="icon icon--attention" data-icon="question"></span>
+              <span class="status__text">Waiting for your answer</span>
+              <span class="status__time">2:31</span>
+            </div>
+            <section class="callout callout--attention question" aria-label="Claude's question" data-scroll-anchor>
+              <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude is asking you</h3>
+              <div class="callout__body markdown">
+                <p>While moving users to Postgres I found <strong>14 accounts</strong> that exist in both databases with different email addresses. They look like the March import Sam ran for billing.</p>
+                <p>Magic links go to the account's email, so picking the wrong one would lock those people out.</p>
+                <p>Which email should win when I merge them?</p>
+              </div>
+              <div class="question__options" role="group" aria-label="Answers Claude suggested">
+                <button class="btn btn--secondary btn--option" type="button" data-goto="working"><span>Billing email</span><span class="option__desc">Where invoices go today</span></button>
+                <button class="btn btn--secondary btn--option" type="button" data-goto="working"><span>Signup email</span><span class="option__desc">What people typed when they joined</span></button>
+                <button class="btn btn--secondary btn--option" type="button" data-goto="working"><span>Keep both</span><span class="option__desc">Either address signs in; flag the 14 for review</span></button>
+              </div>
+              <p class="callout__note">Or type a different answer below.</p>
+            </section>
+            <div data-include="tpl-e2-resolved"></div>
+            <section class="section files">
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed so far <span class="badge">3</span>
+                <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>105</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>86</span></span></span>
+              </h3>
+              <ul class="file-list">
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">schema.prisma</span><span class="file-row__dir">prisma</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>38</span></span></button></li>
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">client.ts</span><span class="file-row__dir">src/db</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>21</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span></button></li>
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">userRepository.ts</span><span class="file-row__dir">src/users</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>46</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>52</span></span></button></li>
+              </ul>
+            </section>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-answering"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 5. Extracting ============================== -->
+  <section class="pv-state" data-state="extracting" data-label="5 · Reply done, decisions extracting" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply">
+            <div data-include="tpl-e2-head"></div>
+            <div data-include="tpl-e2-asked"></div>
+            <div data-include="tpl-e2-resolved"></div>
+            <section class="section decisions" aria-busy="true">
+              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions
+                <span class="section__aside"><span class="icon icon--spin" data-icon="loading"></span>Extracting…</span>
+              </h3>
+              <div class="decisions__loading" role="status">
+                <div class="decisions__loading-row"><span class="skeleton skeleton--long"></span><span class="skeleton skeleton--short"></span></div>
+                <div class="decisions__loading-row"><span class="skeleton skeleton--long"></span><span class="skeleton skeleton--short"></span></div>
+                <p class="meta">Finding the decisions in this reply. This usually takes a few seconds.</p>
+              </div>
+            </section>
+            <div data-include="tpl-e2-files"></div>
+            <div data-include="tpl-e2-full"></div>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 6. Processed (success) ============================== -->
+  <section class="pv-state" data-state="processed" data-label="6 · Processed reply (success)" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <div data-include="tpl-e2-response"></div>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 7. Expanded ============================== -->
+  <section class="pv-state" data-state="expanded" data-label="7 · Full reply expanded" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply">
+            <div data-include="tpl-e2-head"></div>
+            <div data-include="tpl-e2-asked"></div>
+            <div data-include="tpl-e2-resolved"></div>
+            <div data-include="tpl-e2-decisions"></div>
+            <div data-include="tpl-e2-files"></div>
+            <details class="disclosure full-reply" data-open-on-show data-scroll-anchor open>
+              <div data-include="tpl-e2-full-inner"></div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 8. No decisions ============================== -->
+  <section class="pv-state" data-state="no-decisions" data-label="8 · Reply with no decisions (empty)" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e3"></div>
+          <div data-include="tpl-e3-response"></div>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 9. Stopped ============================== -->
+  <section class="pv-state" data-state="stopped" data-label="9 · Stopped by you" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e1"></div>
+          <article class="response" aria-label="Claude's reply">
+            <header class="response__header">
+              <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+              <span class="sep" aria-hidden="true">·</span><span>Stopped by you after 0:41</span>
+            </header>
+            <section class="section decisions">
+              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">1</span></h3>
+              <ol class="decision-list">
+                <li class="decision">
+                  <span class="decision__seq">#12</span>
+                  <div class="decision__body">
+                    <p class="decision__text">Sign users in with magic links only; no passwords.</p>
+                    <p class="decision__meta">
+                      <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+                      <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
+                      <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+                    </p>
+                    <details class="disclosure">
+                      <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+                      <div class="decision__details">
+                        <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
+                        <div data-include="tpl-grade-scale-3-3"></div>
+                        <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+                      </div>
+                    </details>
+                  </div>
+                </li>
+              </ol>
+              <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">5b7e019</button> on main</p>
+            </section>
+            <section class="section files">
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">1</span>
+                <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>52</span></span></span>
+              </h3>
+              <ul class="file-list">
+                <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLink.ts</span><span class="file-row__dir">src/auth</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>52</span></span></button></li>
+              </ul>
+            </section>
+            <details class="disclosure full-reply">
+              <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+              <div class="full-reply__body">
+                <div class="markdown"><p>I'll start with the token model and the route that sends the email, then the verify route and tests.</p></div>
+                <p class="step"><span class="icon" data-icon="search"></span><span>Searched for <code>sendEmail</code></span></p>
+                <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/auth/magicLink.ts</code></span></p>
+                <p class="step"><span class="icon" data-icon="stop"></span><span>Stopped by Priya</span></p>
+                <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+              </div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 10. Turn failed ============================== -->
+  <section class="pv-state" data-state="turn-failed" data-label="10 · Error: Claude Code stopped mid-reply" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e3"></div>
+          <article class="response" aria-label="Claude's reply">
+            <header class="response__header">
+              <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+              <span class="sep" aria-hidden="true">·</span><span>Stopped by an error after 0:22</span>
+            </header>
+            <div class="callout callout--neutral" role="status">
+              <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Claude Code stopped with an error</p>
+              <div class="callout__body">
+                <p>API Error: 500 Internal server error.</p>
+                <p class="callout__note">What Claude did before the error is kept below.</p>
+              </div>
+              <div class="callout__actions"><button class="btn btn--secondary" type="button" data-goto="working"><span class="icon" data-icon="refresh"></span>Try again</button></div>
+            </div>
+            <div data-include="tpl-decisions-empty"></div>
+            <details class="disclosure full-reply">
+              <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+              <div class="full-reply__body">
+                <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 2 failed</span></p>
+                <div class="markdown"><p>Two tests fail after the switch. Both build users with Mongo-style IDs. Looking at the fixtures now.</p></div>
+                <p class="step"><span class="icon icon--danger" data-icon="error"></span><span>API Error: 500 Internal server error</span></p>
+                <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+              </div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 11. Extraction failed: API ============================== -->
+  <section class="pv-state" data-state="extraction-failed-api" data-label="11 · Error: extraction failed (API)" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude's reply">
+            <div data-include="tpl-e2-head"></div>
+            <div data-include="tpl-e2-asked"></div>
+            <div data-include="tpl-e2-resolved"></div>
+            <section class="section decisions" data-scroll-anchor>
+              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions</h3>
+              <div class="callout callout--neutral" role="status">
+                <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Couldn't extract decisions</p>
+                <div class="callout__body">
+                  <p>The Anthropic API is overloaded (529). Trying again in 20 seconds.</p>
+                  <p class="callout__note">The reply is saved and shown in full below, so nothing is missed.</p>
+                </div>
+                <div class="callout__actions"><button class="btn btn--secondary" type="button" data-goto="extracting"><span class="icon" data-icon="refresh"></span>Retry now</button></div>
+              </div>
+            </section>
+            <div data-include="tpl-e2-files"></div>
+            <details class="disclosure full-reply" data-open-on-show open>
+              <div data-include="tpl-e2-full-inner"></div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 12. Extraction failed: no model ============================== -->
+  <section class="pv-state" data-state="extraction-failed-no-model" data-label="12 · Error: no model for extraction" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e3"></div>
+          <article class="response" aria-label="Claude's reply">
+            <div data-include="tpl-e3-head"></div>
+            <section class="section decisions" data-scroll-anchor>
+              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions</h3>
+              <div class="callout callout--neutral" role="status">
+                <p class="callout__title"><span class="icon icon--danger" data-icon="key"></span>No model to extract decisions</p>
+                <div class="callout__body">
+                  <p>Decision Ledger needs a model to find decisions: GitHub Copilot Chat, an Anthropic API key, or a Vertex AI (Gemini) key.</p>
+                  <p class="callout__note">The reply is saved and shown in full below. Its decisions are extracted once a model is set up.</p>
+                </div>
+                <div class="callout__actions">
+                  <button class="btn btn--primary" type="button"><span class="icon" data-icon="key"></span>Set up a model</button>
+                  <button class="btn btn--secondary" type="button" data-goto="extracting"><span class="icon" data-icon="refresh"></span>Retry</button>
+                </div>
+              </div>
+            </section>
+            <div data-include="tpl-e3-files"></div>
+            <details class="disclosure full-reply" data-open-on-show open>
+              <div data-include="tpl-e3-full-inner"></div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 13. Claude Code not installed ============================== -->
+  <section class="pv-state" data-state="not-installed" data-label="13 · Error: Claude Code not installed" hidden>
+    <div class="chat">
+      <div class="chat__transcript chat__transcript--center">
+        <div class="empty-state empty-state--danger" role="alert">
+          <span class="icon icon--lg empty-state__icon" data-icon="error"></span>
+          <h2 class="empty-state__title">Claude Code isn't installed</h2>
+          <p class="empty-state__body">This panel runs Claude Code on your machine, so it needs the <code>claude</code> command. Install it, then check again.</p>
+          <figure class="codeblock">
+            <figcaption class="codeblock__header"><span>Terminal</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy command" title="Copy command"><span class="icon" data-icon="copy"></span></button></figcaption>
+            <pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+          </figure>
+          <div class="empty-state__actions">
+            <button class="btn btn--primary" type="button" data-goto="empty"><span class="icon" data-icon="refresh"></span>Check again</button>
+            <button class="btn btn--text" type="button">Open install guide <span class="icon" data-icon="link-external"></span></button>
+          </div>
+        </div>
+      </div>
+      <div data-include="tpl-composer-blocked"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 14. Not signed in ============================== -->
+  <section class="pv-state" data-state="signed-out" data-label="14 · Error: Claude Code not signed in" hidden>
+    <div class="chat">
+      <div class="chat__transcript chat__transcript--center">
+        <div class="empty-state" role="alert">
+          <span class="icon icon--lg empty-state__icon" data-icon="sign-in"></span>
+          <h2 class="empty-state__title">Sign in to Claude Code</h2>
+          <p class="empty-state__body">Claude Code is installed but not signed in. Sign in once in a terminal; this panel uses the same account.</p>
+          <div class="empty-state__actions">
+            <button class="btn btn--primary" type="button"><span class="icon" data-icon="terminal"></span>Sign in in a terminal</button>
+            <button class="btn btn--secondary" type="button" data-goto="empty"><span class="icon" data-icon="refresh"></span>Check again</button>
+          </div>
+          <p class="meta">Opens a VS Code terminal running <code>claude</code>. Follow its sign-in steps, then come back.</p>
+        </div>
+      </div>
+      <div data-include="tpl-composer-blocked"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 15. Conversation ============================== -->
+  <section class="pv-state" data-state="conversation" data-label="15 · A conversation (3 exchanges)" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e1"></div>
+          <div data-include="tpl-e1-response"></div>
+        </div>
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <div data-include="tpl-e2-response"></div>
+        </div>
+        <div class="exchange">
+          <div data-include="tpl-user-e3"></div>
+          <div data-include="tpl-e3-response"></div>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<!-- ======================================================================
+     Shared markup. Each state above pulls these in, so a change here shows
+     everywhere the same piece appears.
+     ====================================================================== -->
+
+<!-- ---------- User messages ---------- -->
+<template id="tpl-user-e1">
+  <div class="user-msg">
+    <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
+    <p class="user-msg__text">Let's build signup with magic links only, no passwords. Links should expire quickly and work once.</p>
+  </div>
+</template>
+
+<template id="tpl-user-e2">
+  <div class="user-msg">
+    <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
+    <p class="user-msg__text">Sam wants users in Postgres so we're on one database with billing. Switch the user store over from Mongo.</p>
+  </div>
+</template>
+
+<template id="tpl-user-e3">
+  <div class="user-msg">
+    <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
+    <p class="user-msg__text">Run the tests and fix whatever broke.</p>
+  </div>
+</template>
+
+<!-- ---------- Grade scales (shown inside "Why and source") ---------- -->
+<template id="tpl-grade-scale-3-3">
+  <div class="detail"><span class="detail__label">Grades</span>
+    <ul class="grade-scale">
+      <li>Code span 3/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+      <li>Reversibility 3/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+    </ul>
+  </div>
+</template>
+
+<!-- ======================= Exchange 1: magic links ======================= -->
+<template id="tpl-e1-response">
+  <article class="response" aria-label="Claude's reply">
+    <header class="response__header">
+      <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+      <span class="sep" aria-hidden="true">·</span><span>Done in 2m 05s</span>
+    </header>
+    <section class="section decisions">
+      <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">3</span></h3>
+      <ol class="decision-list">
+        <li class="decision">
+          <span class="decision__seq">#12</span>
+          <div class="decision__body">
+            <p class="decision__text">Sign users in with magic links only; no passwords.</p>
+            <p class="decision__meta">
+              <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+            </p>
+            <details class="disclosure">
+              <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+              <div class="decision__details">
+                <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
+                <div data-include="tpl-grade-scale-3-3"></div>
+                <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+              </div>
+            </details>
+          </div>
+        </li>
+        <li class="decision">
+          <span class="decision__seq">#13</span>
+          <div class="decision__body">
+            <p class="decision__text">Magic links expire after 15 minutes and work once.</p>
+            <p class="decision__meta">
+              <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 1/5</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 5/5</span>
+            </p>
+            <details class="disclosure">
+              <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+              <div class="decision__details">
+                <div class="detail"><span class="detail__label">Why</span><p>Short enough that a forwarded link goes stale quickly, long enough for slow email.</p></div>
+                <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“Links expire after 15 minutes and are marked used on first click”</blockquote></div>
+                <div class="detail"><span class="detail__label">Grades</span>
+                  <ul class="grade-scale">
+                    <li>Code span 1/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+                    <li>Reversibility 5/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                  </ul>
+                </div>
+                <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+              </div>
+            </details>
+          </div>
+        </li>
+        <li class="decision">
+          <span class="decision__seq">#14</span>
+          <div class="decision__body">
+            <p class="decision__text">Store only a SHA-256 hash of each link token.</p>
+            <p class="decision__meta">
+              <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 1/5</span>
+              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+            </p>
+            <details class="disclosure">
+              <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+              <div class="decision__details">
+                <div class="detail"><span class="detail__label">Why</span><p>If the database leaks, no usable sign-in links leak with it.</p></div>
+                <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“only a SHA-256 hash of the token is stored”</blockquote></div>
+                <div class="detail"><span class="detail__label">Grades</span>
+                  <ul class="grade-scale">
+                    <li>Code span 1/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+                    <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                  </ul>
+                </div>
+                <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+              </div>
+            </details>
+          </div>
+        </li>
+      </ol>
+      <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">8c41d0e</button> on main</p>
+    </section>
+    <section class="section files">
+      <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">4</span>
+        <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>200</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>6</span></span></span>
+      </h3>
+      <ul class="file-list">
+        <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLink.ts</span><span class="file-row__dir">src/auth</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>88</span></span></button></li>
+        <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">routes.ts</span><span class="file-row__dir">src/auth</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>24</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>6</span></span></button></li>
+        <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLink.html</span><span class="file-row__dir">src/email/templates</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>31</span></span></button></li>
+        <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLink.test.ts</span><span class="file-row__dir">test/auth</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>57</span></span></button></li>
+      </ul>
+    </section>
+    <details class="disclosure full-reply">
+      <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+      <div class="full-reply__body">
+        <div class="markdown"><p>I'll add passwordless signup: one route that emails a link, one that verifies it.</p></div>
+        <p class="step"><span class="icon" data-icon="search"></span><span>Searched for <code>sendEmail</code></span></p>
+        <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/auth/magicLink.ts</code></span></p>
+        <figure class="codeblock">
+          <figcaption class="codeblock__header"><span>ts</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></figcaption>
+          <pre><code>const LINK_LIFETIME_MS = 15 * 60 * 1000;
+
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}</code></pre>
+        </figure>
+        <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>src/auth/routes.ts</code></span></p>
+        <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/email/templates/magicLink.html</code>, <code>test/auth/magicLink.test.ts</code></span></p>
+        <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 38 passed</span></p>
+        <div class="markdown">
+          <p>Magic-link signup is in:</p>
+          <ul>
+            <li><code>POST /auth/magic-link</code> emails a link; <code>GET /auth/verify</code> signs the user in.</li>
+            <li>Links expire after 15 minutes and are marked used on first click. I picked 15 minutes: short enough that a forwarded link goes stale quickly, long enough for slow email.</li>
+            <li>If the database leaks, no usable links leak with it: only a SHA-256 hash of the token is stored.</li>
+          </ul>
+        </div>
+        <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+      </div>
+    </details>
+  </article>
+</template>
+
+<!-- ======================= Exchange 2: Mongo to Postgres ======================= -->
+<template id="tpl-e2-head">
+  <header class="response__header">
+    <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+    <span class="sep" aria-hidden="true">·</span><span>Done in 3m 41s</span>
+  </header>
+</template>
+
+<!-- A question stays in full after it's answered; it just stops shouting. -->
+<template id="tpl-e2-asked">
+  <section class="callout callout--neutral question" aria-label="Claude's question, answered">
+    <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude asked</h3>
+    <div class="callout__body markdown">
+      <p>While moving users to Postgres I found <strong>14 accounts</strong> that exist in both databases with different email addresses. They look like the March import Sam ran for billing.</p>
+      <p>Magic links go to the account's email, so picking the wrong one would lock those people out.</p>
+      <p>Which email should win when I merge them?</p>
+    </div>
+    <p class="question__answer"><span class="icon icon--success" data-icon="check"></span><span><strong>Priya answered:</strong> Keep both. Either address signs in; flag the 14 for review.</span></p>
+  </section>
+</template>
+
+<template id="tpl-e2-resolved">
+  <p class="resolved"><span class="icon icon--success" data-icon="check"></span><span>Allowed Bash: <code>npm install prisma @prisma/client</code> <span class="sep" aria-hidden="true">·</span> by Priya, this time only</span></p>
+</template>
+
+<template id="tpl-e2-decisions">
+  <section class="section decisions">
+    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">4</span></h3>
+    <ol class="decision-list">
+      <li class="decision">
+        <span class="decision__seq">#15</span>
+        <div class="decision__body">
+          <p class="decision__text">Store users in Postgres instead of MongoDB.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 4/5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 2/5</span>
+          </p>
+          <p class="decision__meta"><span class="icon" data-icon="replace"></span><span>Replaces #9: Store users in MongoDB. (Sam)</span></p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Billing already runs on Postgres, so there is one database to back up and operate.</p></div>
+              <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“Sam wants users in Postgres so we're on one database with billing”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 4/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 2/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#16</span>
+        <div class="decision__body">
+          <p class="decision__text">Use Prisma as the Postgres client.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Typed queries and migrations in one tool; billing uses no ORM, so there is nothing to stay consistent with.</p></div>
+              <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“billing doesn't use an ORM, so there's nothing to stay consistent with”</blockquote></div>
+              <div data-include="tpl-grade-scale-3-3"></div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#17</span>
+        <div class="decision__body">
+          <p class="decision__text">Keep each user's old Mongo ID in a legacy_id column.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 2/5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Existing magic links and logs still reference Mongo IDs.</p></div>
+              <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“so existing magic links and logs still resolve”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#18</span>
+        <div class="decision__body">
+          <p class="decision__text">Keep both emails on the 14 duplicate accounts and flag them for review.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 2/5</span>
+            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“Keep both”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+    </ol>
+    <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">3f9a2c1</button> on main</p>
+  </section>
+</template>
+
+<template id="tpl-e2-files">
+  <section class="section files">
+    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">6</span>
+      <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>161</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>99</span></span></span>
+    </h3>
+    <ul class="file-list">
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">schema.prisma</span><span class="file-row__dir">prisma</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>38</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">client.ts</span><span class="file-row__dir">src/db</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>21</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">userRepository.ts</span><span class="file-row__dir">src/users</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>46</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>52</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">mergeDuplicates.ts</span><span class="file-row__dir">src/users</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>44</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">docker-compose.yml</span><span class="file-row__dir"></span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>9</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>11</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">package.json</span><span class="file-row__dir"></span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>3</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>2</span></span></button></li>
+    </ul>
+  </section>
+</template>
+
+<template id="tpl-e2-full">
+  <details class="disclosure full-reply">
+    <div data-include="tpl-e2-full-inner"></div>
+  </details>
+</template>
+
+<template id="tpl-e2-full-inner">
+  <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+  <div class="full-reply__body">
+    <div class="markdown">
+      <p>I'll move the user store from MongoDB to Postgres, on the same Postgres instance billing already uses.</p>
+      <h4>Plan</h4>
+      <ol>
+        <li>Add Prisma with a <code>User</code> model that mirrors the current Mongo document.</li>
+        <li>Point <code>src/db/client.ts</code> at Postgres.</li>
+        <li>Rewrite <code>userRepository.ts</code> against Prisma.</li>
+        <li>Keep the old Mongo <code>_id</code> as <code>legacyId</code> so existing magic links and logs still resolve.</li>
+      </ol>
+    </div>
+    <p class="step"><span class="icon" data-icon="file"></span><span>Read <code>src/users/userRepository.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm install prisma @prisma/client</code> · allowed by Priya</span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>prisma/schema.prisma</code></span></p>
+    <figure class="codeblock">
+      <figcaption class="codeblock__header"><span>prisma</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></figcaption>
+      <pre><code>model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  altEmail  String?  @map("alt_email")
+  legacyId  String?  @unique @map("legacy_id")
+  createdAt DateTime @default(now()) @map("created_at")
+}</code></pre>
+    </figure>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>src/db/client.ts</code>, <code>src/users/userRepository.ts</code></span></p>
+    <div class="markdown"><p>14 accounts exist in both databases with different emails. Asking before I merge them.</p></div>
+    <p class="step"><span class="icon" data-icon="question"></span><span>Asked which email should win · Priya answered “Keep both”</span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/users/mergeDuplicates.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>docker-compose.yml</code>, <code>package.json</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 41 passed</span></p>
+    <div class="markdown">
+      <p>Done. Users now live in Postgres via Prisma.</p>
+      <p>I chose Prisma over plain <code>pg</code> because billing doesn't use an ORM, so there's nothing to stay consistent with, and Prisma gives typed queries and migrations in one tool. If you'd rather keep it lighter, swapping to <code>pg</code> only touches <code>client.ts</code> and the repository.</p>
+      <p>The 14 duplicate accounts keep both addresses: the signup email in <code>email</code>, the billing one in <code>altEmail</code>. Either can request a magic link, and <code>mergeDuplicates.ts</code> writes their IDs to <code>needs-review.csv</code>.</p>
+      <p>I left the Mongo service in <code>docker-compose.yml</code>, commented out, so you can run a one-off copy of existing users before removing it.</p>
+    </div>
+    <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+  </div>
+</template>
+
+<template id="tpl-e2-response">
+  <article class="response" aria-label="Claude's reply">
+    <div data-include="tpl-e2-head"></div>
+    <div data-include="tpl-e2-asked"></div>
+    <div data-include="tpl-e2-resolved"></div>
+    <div data-include="tpl-e2-decisions"></div>
+    <div data-include="tpl-e2-files"></div>
+    <div data-include="tpl-e2-full"></div>
+  </article>
+</template>
+
+<!-- ======================= Exchange 3: fix tests (no decisions) ======================= -->
+<template id="tpl-e3-head">
+  <header class="response__header">
+    <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+    <span class="sep" aria-hidden="true">·</span><span>Done in 1m 18s</span>
+  </header>
+</template>
+
+<template id="tpl-decisions-empty">
+  <section class="section decisions">
+    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">0</span></h3>
+    <div class="decisions__empty">
+      <p>No decisions in this reply.</p>
+      <p class="meta">Extraction can miss some. Everything Claude said is in the full reply.</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-e3-files">
+  <section class="section files">
+    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">2</span>
+      <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>16</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>19</span></span></span>
+    </h3>
+    <ul class="file-list">
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">users.ts</span><span class="file-row__dir">test/fixtures</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>12</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>15</span></span></button></li>
+      <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLink.test.ts</span><span class="file-row__dir">test/auth</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>4</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>4</span></span></button></li>
+    </ul>
+  </section>
+</template>
+
+<template id="tpl-e3-full-inner">
+  <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+  <div class="full-reply__body">
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 2 failed</span></p>
+    <div class="markdown"><p>Two tests failed after the switch. Both built users with Mongo-style IDs, which the new <code>User</code> model rejects because IDs are now UUIDs.</p></div>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>test/fixtures/users.ts</code>, <code>test/auth/magicLink.test.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 43 passed</span></p>
+    <div class="markdown"><p>Fixed. The fixtures now create UUIDs, and the one assertion that compared IDs as plain strings uses the new format. All 43 tests pass.</p></div>
+    <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+  </div>
+</template>
+
+<template id="tpl-e3-response">
+  <article class="response" aria-label="Claude's reply">
+    <div data-include="tpl-e3-head"></div>
+    <div data-include="tpl-decisions-empty"></div>
+    <div data-include="tpl-e3-files"></div>
+    <details class="disclosure full-reply">
+      <div data-include="tpl-e3-full-inner"></div>
+    </details>
+  </article>
+</template>
+
+<!-- ======================= Composer variants ======================= -->
+<template id="tpl-composer-idle">
+  <form class="composer" data-goto="working" aria-label="Message Claude">
+    <div class="composer__inner">
+      <div class="composer__box">
+        <textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Ask Claude to change something…"></textarea>
+        <div class="composer__bar">
+          <span class="composer__hint">Enter to send · Shift+Enter for a new line</span>
+          <button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</template>
+
+<template id="tpl-composer-running">
+  <form class="composer" aria-label="Message Claude" data-escape="stopped">
+    <div class="progress" role="progressbar" aria-label="Claude is working"></div>
+    <div class="composer__inner">
+      <div class="composer__box">
+        <textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Draft your next message…"></textarea>
+        <div class="composer__bar">
+          <span class="composer__hint">Esc to stop</span>
+          <button type="button" class="btn btn--secondary" data-goto="stopped"><span class="icon" data-icon="stop"></span>Stop</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</template>
+
+<template id="tpl-composer-waiting">
+  <form class="composer" aria-label="Message Claude" data-escape="stopped">
+    <div class="composer__inner">
+      <div class="composer__box">
+        <textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Claude is waiting for your permission above."></textarea>
+        <div class="composer__bar">
+          <span class="composer__hint">Esc to stop</span>
+          <button type="button" class="btn btn--secondary" data-goto="stopped"><span class="icon" data-icon="stop"></span>Stop</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</template>
+
+<template id="tpl-composer-answering">
+  <form class="composer composer--answering" data-goto="working" aria-label="Answer Claude's question" data-escape="stopped">
+    <div class="composer__inner">
+      <p class="composer__label"><span class="icon icon--attention" data-icon="question"></span>Answering Claude's question</p>
+      <div class="composer__box">
+        <textarea class="textarea textarea--bare" rows="2" aria-label="Your answer to Claude" placeholder="Type your answer…"></textarea>
+        <div class="composer__bar">
+          <span class="composer__hint">Enter to send · Esc to stop</span>
+          <button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send answer</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</template>
+
+<template id="tpl-composer-blocked">
+  <form class="composer" aria-label="Message Claude">
+    <div class="composer__inner">
+      <div class="composer__box">
+        <textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Ask Claude to change something…">Add rate limiting to the magic-link route: 5 requests per email per hour.</textarea>
+        <div class="composer__bar">
+          <span class="composer__hint">Your message is kept until Claude Code is ready.</span>
+          <button type="submit" class="btn btn--primary" aria-disabled="true"><span class="icon" data-icon="send"></span>Send</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</template>
+
+</body>
+</html>

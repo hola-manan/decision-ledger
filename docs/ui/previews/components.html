@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en" class="theme-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Components · Decision Ledger chat panel</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="vscode-theme.css">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js"></script>
+</head>
+<body class="pv">
+
+<div class="pv-bar" role="region" aria-label="Preview controls (not part of the design)">
+  <span class="pv-bar__flag">Preview only</span>
+  <a href="index.html">All states</a>
+  <span class="pv-bar__group" role="group" aria-label="Theme">
+    <button class="btn btn--secondary" type="button" data-set-theme="dark">Dark</button>
+    <button class="btn btn--secondary" type="button" data-set-theme="light">Light</button>
+  </span>
+</div>
+
+<main class="pv-page">
+  <div class="pv-page__inner">
+    <header class="pv-group">
+      <h1>Components</h1>
+      <p class="meta">Part 1 is shared UI (<code>components/ui/</code>): it knows nothing about chats or decisions. Part 2 is the chat feature's own components, built from part 1. Hover, focus and pressed are forced with classes here so you can see them without a mouse.</p>
+    </header>
+
+    <!-- ===================================================== PART 1 ===================================================== -->
+    <h2 class="section__header">Part 1 · Shared components</h2>
+
+    <section class="pv-group" aria-labelledby="c-button">
+      <h2 id="c-button">Button</h2>
+      <div class="pv-specimen">
+        <div class="pv-specimen__row">
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Primary</span><button class="btn btn--primary" type="button"><span class="icon" data-icon="send"></span>Send</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Hover / pressed</span><button class="btn btn--primary is-hover" type="button"><span class="icon" data-icon="send"></span>Send</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Focus</span><button class="btn btn--primary is-focus" type="button"><span class="icon" data-icon="send"></span>Send</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Disabled</span><button class="btn btn--primary" type="button" aria-disabled="true"><span class="icon" data-icon="send"></span>Send</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Loading</span><button class="btn btn--primary" type="button" aria-busy="true"><span class="icon icon--spin" data-icon="loading"></span>Checking…</button></div>
+        </div>
+        <div class="pv-specimen__row">
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Secondary</span><button class="btn btn--secondary" type="button"><span class="icon" data-icon="stop"></span>Stop</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Hover / pressed</span><button class="btn btn--secondary is-hover" type="button"><span class="icon" data-icon="stop"></span>Stop</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Focus</span><button class="btn btn--secondary is-focus" type="button"><span class="icon" data-icon="stop"></span>Stop</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Disabled</span><button class="btn btn--secondary" type="button" disabled><span class="icon" data-icon="stop"></span>Stop</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Loading</span><button class="btn btn--secondary" type="button" aria-busy="true"><span class="icon icon--spin" data-icon="loading"></span>Retrying…</button></div>
+        </div>
+        <div class="pv-specimen__row">
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Text</span><button class="btn btn--text" type="button"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Text hover</span><button class="btn btn--text is-hover" type="button"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Text focus</span><button class="btn btn--text is-focus" type="button"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Icon</span><button class="btn btn--icon" type="button" aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Icon hover</span><button class="btn btn--icon is-hover" type="button" aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></div>
+          <div class="pv-specimen__cell"><span class="pv-specimen__label">Icon focus</span><button class="btn btn--icon is-focus" type="button" aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-textarea">
+      <h2 id="c-textarea">TextArea</h2>
+      <div class="pv-specimen">
+        <div class="pv-specimen__cell"><span class="pv-specimen__label">Empty</span><textarea class="textarea" rows="2" aria-label="Example: empty" placeholder="Ask Claude to change something…"></textarea></div>
+        <div class="pv-specimen__cell"><span class="pv-specimen__label">Focus</span><textarea class="textarea is-focus" rows="2" aria-label="Example: focus" placeholder="Ask Claude to change something…"></textarea></div>
+        <div class="pv-specimen__cell"><span class="pv-specimen__label">With text (grows to about 8 lines, then scrolls)</span><textarea class="textarea" rows="3" aria-label="Example: with text">Add rate limiting to the magic-link route: 5 requests per email per hour.
+Return 429 with a Retry-After header.</textarea></div>
+        <div class="pv-specimen__cell"><span class="pv-specimen__label">Disabled</span><textarea class="textarea" rows="2" aria-label="Example: disabled" placeholder="Not available" disabled></textarea></div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-callout">
+      <h2 id="c-callout">Callout</h2>
+      <p class="meta">Only <em>attention</em> and <em>warning</em> are loud (2px border, tinted background). They're reserved for things that need the user. Everything else is <em>neutral</em>.</p>
+      <div class="pv-specimen">
+        <div class="callout callout--attention"><p class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Attention</p><p class="callout__body">Used only for a question that is waiting for the user.</p></div>
+        <div class="callout callout--warning"><p class="callout__title"><span class="icon icon--warning" data-icon="shield"></span>Warning</p><p class="callout__body">Used only for a permission request that is waiting for the user.</p><div class="callout__actions"><button class="btn btn--primary" type="button">Primary action</button><button class="btn btn--secondary" type="button">Other action</button></div></div>
+        <div class="callout callout--neutral"><p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Neutral, with an error icon</p><div class="callout__body"><p>Errors that don't block the user: calm box, the icon carries the severity.</p><p class="callout__note">Note text: secondary colour, one size down.</p></div></div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-disclosure">
+      <h2 id="c-disclosure">Disclosure</h2>
+      <div class="pv-specimen">
+        <details class="disclosure"><summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary><p class="meta">Native &lt;details&gt;: keyboard and screen reader support for free. The label says what will happen.</p></details>
+        <details class="disclosure" open><summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary><p class="meta">Open.</p></details>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-section">
+      <h2 id="c-section">Section header, Badge, Tag, DiffStat</h2>
+      <div class="pv-specimen">
+        <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">6</span><span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>161</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>99</span></span></span></h3>
+        <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions<span class="section__aside"><span class="icon icon--spin" data-icon="loading"></span>Extracting…</span></h3>
+        <div class="pv-specimen__row">
+          <span class="badge">4</span><span class="badge">12</span>
+          <span class="tag">new</span><span class="tag">deleted</span><span class="tag">renamed</span>
+          <span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>38</span></span>
+          <span class="diffstat"><span class="diffstat__removed"><span class="diffstat__sign">−</span>40</span></span>
+          <span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>21</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-loading">
+      <h2 id="c-loading">ProgressBar, Spinner, Skeleton</h2>
+      <div class="pv-specimen">
+        <div class="progress" role="progressbar" aria-label="Example progress"></div>
+        <p class="pv-specimen__row"><span class="icon icon--spin" data-icon="loading"></span><span class="meta">Spinner: the loading icon turning. With reduced motion it stands still; the text next to it always says what's happening.</span></p>
+        <div class="decisions__loading-row"><span class="skeleton skeleton--long"></span><span class="skeleton skeleton--short"></span></div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-empty">
+      <h2 id="c-empty">EmptyState</h2>
+      <div class="pv-specimen">
+        <div class="empty-state">
+          <span class="icon icon--lg empty-state__icon" data-icon="ledger"></span>
+          <h3 class="empty-state__title">Neutral</h3>
+          <p class="empty-state__body">Icon, title, one or two sentences, then what to do next.</p>
+          <div class="empty-state__actions"><button class="btn btn--primary" type="button">Primary action</button></div>
+        </div>
+        <div class="empty-state empty-state--danger">
+          <span class="icon icon--lg empty-state__icon" data-icon="error"></span>
+          <h3 class="empty-state__title">Blocking error</h3>
+          <p class="empty-state__body">Same shape, danger icon. Used when the panel can't work at all.</p>
+          <div class="empty-state__actions"><button class="btn btn--primary" type="button"><span class="icon" data-icon="refresh"></span>Check again</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-markdown">
+      <h2 id="c-markdown">Markdown, CodeBlock, Quote</h2>
+      <div class="pv-specimen">
+        <div class="markdown">
+          <p>Rendered reply text with <code>inline code</code>, <strong>bold</strong> and lists:</p>
+          <ol><li>Add Prisma with a <code>User</code> model.</li><li>Point <code>src/db/client.ts</code> at Postgres.</li></ol>
+        </div>
+        <figure class="codeblock">
+          <figcaption class="codeblock__header"><span>ts</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></figcaption>
+          <pre><code>const LINK_LIFETIME_MS = 15 * 60 * 1000;</code></pre>
+        </figure>
+        <blockquote class="quote">“Sam wants users in Postgres so we're on one database with billing”</blockquote>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-rowlink">
+      <h2 id="c-rowlink">RowLink</h2>
+      <div class="pv-specimen">
+        <ul class="file-list">
+          <li><button type="button" class="row-link file-row"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">Default row</span><span class="file-row__dir">the whole row is one target</span></button></li>
+          <li><button type="button" class="row-link file-row is-hover"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">Hover</span><span class="file-row__dir">list hover background</span></button></li>
+          <li><button type="button" class="row-link file-row is-focus"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">Focus</span><span class="file-row__dir">focus outline</span></button></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="c-icons">
+      <h2 id="c-icons">Icons (codicon-like)</h2>
+      <div class="pv-specimen">
+        <div class="pv-specimen__row">
+          <span class="pv-specimen__cell"><span class="icon" data-icon="person"></span><span class="pv-specimen__label">person</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="hubot"></span><span class="pv-specimen__label">hubot</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="git-commit"></span><span class="pv-specimen__label">git-commit</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="file-diff"></span><span class="pv-specimen__label">diff</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="file"></span><span class="pv-specimen__label">file</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="question"></span><span class="pv-specimen__label">question</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="shield"></span><span class="pv-specimen__label">shield</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="error"></span><span class="pv-specimen__label">error</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="check"></span><span class="pv-specimen__label">check</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="loading"></span><span class="pv-specimen__label">loading</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="stop"></span><span class="pv-specimen__label">stop</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="send"></span><span class="pv-specimen__label">send</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="replace"></span><span class="pv-specimen__label">replace</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="pencil"></span><span class="pv-specimen__label">edit</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="terminal"></span><span class="pv-specimen__label">terminal</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="search"></span><span class="pv-specimen__label">search</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="key"></span><span class="pv-specimen__label">key</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="sign-in"></span><span class="pv-specimen__label">sign-in</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="link-external"></span><span class="pv-specimen__label">link-external</span></span>
+          <span class="pv-specimen__cell"><span class="icon" data-icon="text"></span><span class="pv-specimen__label">text</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== PART 2 ===================================================== -->
+    <h2 class="section__header">Part 2 · Chat feature components</h2>
+
+    <section class="pv-group" aria-labelledby="f-author">
+      <h2 id="f-author">AuthorLabel and UserMessage</h2>
+      <div class="pv-specimen">
+        <div class="pv-specimen__row">
+          <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Sam</span>
+          <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+          <span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya (strong, in headers)</span>
+        </div>
+        <div class="user-msg">
+          <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
+          <p class="user-msg__text">Run the tests and fix whatever broke.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-status">
+      <h2 id="f-status">StatusLine</h2>
+      <div class="pv-specimen">
+        <div class="status" role="status"><span class="icon icon--spin icon--secondary" data-icon="loading"></span><span class="status__text">Running npm test…</span><span class="status__time">0:42</span></div>
+        <div class="status" role="status"><span class="icon icon--spin icon--secondary" data-icon="loading"></span><span class="status__text" title="Editing src/email/templates/transactional/magicLinkWithDeviceHint.html…">Editing src/email/templates/transactional/magicLinkWithDeviceHint.html…</span><span class="status__time">1:03</span></div>
+        <div class="status status--waiting" role="status"><span class="icon icon--attention" data-icon="question"></span><span class="status__text">Waiting for your answer</span><span class="status__time">2:31</span></div>
+        <div class="status status--waiting" role="status"><span class="icon icon--attention" data-icon="shield"></span><span class="status__text">Waiting for your permission</span><span class="status__time">0:48</span></div>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-question">
+      <h2 id="f-question">QuestionCard</h2>
+      <div class="pv-specimen">
+        <section class="callout callout--attention question" aria-label="Claude's question">
+          <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude is asking you</h3>
+          <div class="callout__body markdown"><p>Should the magic-link email mention which device asked for it? It helps people spot links they didn't request, but adds a line to every email.</p></div>
+          <p class="callout__note">Type your answer below.</p>
+        </section>
+        <p class="meta">Waiting, free-text question (no suggested answers). With suggested answers, see state 4.</p>
+        <section class="callout callout--neutral question" aria-label="Claude's question, answered">
+          <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude asked</h3>
+          <div class="callout__body markdown"><p>Should the magic-link email mention which device asked for it? It helps people spot links they didn't request, but adds a line to every email.</p></div>
+          <p class="question__answer"><span class="icon icon--success" data-icon="check"></span><span><strong>Priya answered:</strong> Yes, browser and city only.</span></p>
+        </section>
+        <p class="meta">Answered: still in full, no longer loud.</p>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-permission">
+      <h2 id="f-permission">PermissionCard and resolved line</h2>
+      <div class="pv-specimen">
+        <section class="callout callout--warning permission" aria-label="Permission request">
+          <h3 class="callout__title"><span class="icon icon--warning" data-icon="shield"></span>Allow edit?</h3>
+          <div class="callout__body">
+            <p>Claude wants to edit <code>docker-compose.yml</code> (+9 −11).</p>
+            <div><button type="button" class="btn btn--text"><span class="icon" data-icon="file-diff"></span>Show the change</button></div>
+          </div>
+          <div class="callout__actions">
+            <button class="btn btn--primary" type="button">Allow</button>
+            <button class="btn btn--secondary" type="button">Allow all edits for this session</button>
+            <button class="btn btn--secondary" type="button">Deny</button>
+          </div>
+        </section>
+        <p class="resolved"><span class="icon icon--success" data-icon="check"></span><span>Allowed Bash: <code>npm install prisma @prisma/client</code> <span class="sep" aria-hidden="true">·</span> by Priya, this time only</span></p>
+        <p class="resolved"><span class="icon icon--success" data-icon="check"></span><span>Allowed Bash: <code>npm test</code> <span class="sep" aria-hidden="true">·</span> by Priya, for this session</span></p>
+        <p class="resolved"><span class="icon icon--danger" data-icon="error"></span><span>Denied Bash: <code>rm -rf node_modules</code> <span class="sep" aria-hidden="true">·</span> by Priya</span></p>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-decision">
+      <h2 id="f-decision">DecisionItem</h2>
+      <div class="pv-specimen">
+        <ol class="decision-list">
+          <li class="decision">
+            <span class="decision__seq">#15</span>
+            <div class="decision__body">
+              <p class="decision__text">Store users in Postgres instead of MongoDB.</p>
+              <p class="decision__meta"><span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span><span class="sep" aria-hidden="true">·</span><span class="grades">Code span 4/5</span><span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 2/5</span></p>
+              <p class="decision__meta"><span class="icon" data-icon="replace"></span><span>Replaces #9: Store users in MongoDB. (Sam)</span></p>
+              <details class="disclosure" open>
+                <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+                <div class="decision__details">
+                  <div class="detail"><span class="detail__label">Why</span><p>Billing already runs on Postgres, so there is one database to back up and operate.</p></div>
+                  <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“Sam wants users in Postgres so we're on one database with billing”</blockquote></div>
+                  <div class="detail"><span class="detail__label">Grades</span><ul class="grade-scale"><li>Code span 4/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li><li>Reversibility 2/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li></ul></div>
+                  <div><button type="button" class="btn btn--text"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+                </div>
+              </details>
+            </div>
+          </li>
+          <li class="decision">
+            <span class="decision__seq">#21</span>
+            <div class="decision__body">
+              <p class="decision__text">Send magic-link emails through the existing billing mailer instead of a new provider.</p>
+              <p class="decision__meta"><span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span></p>
+              <details class="disclosure">
+                <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+                <div class="decision__details"><div><button type="button" class="btn btn--text"><span class="icon" data-icon="link-external"></span>Open source</button></div></div>
+              </details>
+            </div>
+          </li>
+        </ol>
+        <p class="meta">First: expanded, with supersedes. Second: no grades (the project has no parameters), no rationale, no quote; the disclosure is just "Source".</p>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-decisions">
+      <h2 id="f-decisions">Decisions section: loading, empty, error</h2>
+      <div class="pv-specimen">
+        <section class="section decisions" aria-busy="true">
+          <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions<span class="section__aside"><span class="icon icon--spin" data-icon="loading"></span>Extracting…</span></h3>
+          <div class="decisions__loading" role="status">
+            <div class="decisions__loading-row"><span class="skeleton skeleton--long"></span><span class="skeleton skeleton--short"></span></div>
+            <p class="meta">Finding the decisions in this reply. This usually takes a few seconds.</p>
+          </div>
+        </section>
+        <section class="section decisions">
+          <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">0</span></h3>
+          <div class="decisions__empty"><p>No decisions in this reply.</p><p class="meta">Extraction can miss some. Everything Claude said is in the full reply.</p></div>
+        </section>
+        <section class="section decisions">
+          <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions</h3>
+          <div class="callout callout--neutral" role="status">
+            <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Couldn't extract decisions</p>
+            <div class="callout__body"><p>The model's reply couldn't be read. Retry usually fixes this.</p><p class="callout__note">The reply is saved and shown in full below, so nothing is missed.</p></div>
+            <div class="callout__actions"><button class="btn btn--secondary" type="button"><span class="icon" data-icon="refresh"></span>Retry</button></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-files">
+      <h2 id="f-files">FileRow</h2>
+      <div class="pv-specimen">
+        <ul class="file-list">
+          <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">schema.prisma</span><span class="file-row__dir">prisma</span><span class="tag">new</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>38</span></span></button></li>
+          <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">userRepository.ts</span><span class="file-row__dir">src/users</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>46</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>52</span></span></button></li>
+          <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">mongo.ts</span><span class="file-row__dir">src/db</span><span class="tag">deleted</span><span class="diffstat"><span class="diffstat__removed"><span class="diffstat__sign">−</span>40</span></span></button></li>
+          <li><button type="button" class="row-link file-row" title="Open diff"><span class="icon file-row__icon" data-icon="file"></span><span class="file-row__name">magicLinkWithDeviceHint.html</span><span class="file-row__dir">src/email/templates/transactional</span><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>7</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>1</span></span></button></li>
+        </ul>
+        <p class="meta">New, modified, deleted, and a long name (the folder truncates first, then the name).</p>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-full">
+      <h2 id="f-full">FullReply</h2>
+      <div class="pv-specimen">
+        <details class="disclosure full-reply">
+          <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+          <div class="full-reply__body">
+            <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 43 passed</span></p>
+            <div class="markdown"><p>All 43 tests pass.</p></div>
+            <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+          </div>
+        </details>
+        <p class="meta">Collapsed (click to open). Open, it shows the reply text, one line per step, and code blocks, with a second Hide button at the bottom.</p>
+      </div>
+    </section>
+
+    <section class="pv-group" aria-labelledby="f-composer">
+      <h2 id="f-composer">Composer</h2>
+      <div class="pv-specimen">
+        <span class="pv-specimen__label">Idle</span>
+        <form class="composer" aria-label="Example composer: idle"><div class="composer__inner"><div class="composer__box"><textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Ask Claude to change something…"></textarea><div class="composer__bar"><span class="composer__hint">Enter to send · Shift+Enter for a new line</span><button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send</button></div></div></div></form>
+        <span class="pv-specimen__label">Running (progress line on top, Send becomes Stop)</span>
+        <form class="composer" aria-label="Example composer: running"><div class="progress" role="progressbar" aria-label="Claude is working"></div><div class="composer__inner"><div class="composer__box"><textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Draft your next message…"></textarea><div class="composer__bar"><span class="composer__hint">Esc to stop</span><button type="button" class="btn btn--secondary"><span class="icon" data-icon="stop"></span>Stop</button></div></div></div></form>
+        <span class="pv-specimen__label">Answering a question</span>
+        <form class="composer composer--answering" aria-label="Example composer: answering"><div class="composer__inner"><p class="composer__label"><span class="icon icon--attention" data-icon="question"></span>Answering Claude's question</p><div class="composer__box"><textarea class="textarea textarea--bare" rows="2" aria-label="Your answer to Claude" placeholder="Type your answer…"></textarea><div class="composer__bar"><span class="composer__hint">Enter to send · Esc to stop</span><button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send answer</button></div></div></div></form>
+        <span class="pv-specimen__label">Blocked (Claude Code unavailable; draft kept)</span>
+        <form class="composer" aria-label="Example composer: blocked"><div class="composer__inner"><div class="composer__box"><textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude">Add rate limiting to the magic-link route.</textarea><div class="composer__bar"><span class="composer__hint">Your message is kept until Claude Code is ready.</span><button type="submit" class="btn btn--primary" aria-disabled="true"><span class="icon" data-icon="send"></span>Send</button></div></div></div></form>
+        <span class="pv-specimen__label">"Jump to" pill: appears above the composer when Claude is waiting and the card is scrolled out of view</span>
+        <div class="user-msg"><p class="user-msg__text">…earlier conversation, scrolled up…</p></div>
+        <form class="composer" aria-label="Example composer: with jump pill">
+          <button type="button" class="btn btn--primary jump-pill"><span class="icon" data-icon="arrow-down"></span>Claude is asking you</button>
+          <div class="composer__inner"><div class="composer__box"><textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Type your answer…"></textarea><div class="composer__bar"><span class="composer__hint">Enter to send</span><button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send answer</button></div></div></div>
+        </form>
+      </div>
+    </section>
+
+  </div>
+</main>
+</body>
+</html>

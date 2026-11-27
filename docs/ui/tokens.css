@@ -1,0 +1,165 @@
+/*
+ * Decision Ledger: design tokens for the chat panel webview.
+ *
+ * Every colour maps to a VS Code theme variable, so the panel follows the user's
+ * theme (dark, light, high contrast) automatically. The fallback after the comma is
+ * the "Dark Modern" value; VS Code always injects the real variables into webviews,
+ * so fallbacks only show outside VS Code.
+ *
+ * Code uses only these --dl-* tokens, never --vscode-* directly and never literals.
+ * See docs/ui/design-system.md for what each token is for.
+ *
+ * Location: there is no webview source folder yet. When it exists, move this file to
+ * its styles folder (e.g. src/webview/styles/tokens.css) and update the previews' link.
+ */
+
+:root {
+  /* ---------- Colour: surfaces ---------- */
+  --dl-color-bg: var(--vscode-sideBar-background, #181818);
+  --dl-color-surface: var(--vscode-editorWidget-background, #202020);
+  --dl-color-surface-raised: var(--vscode-input-background, #313131);
+  --dl-color-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+  --dl-color-toolbar-hover: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+
+  /* ---------- Colour: text ---------- */
+  --dl-color-fg: var(--vscode-foreground, #cccccc);
+  --dl-color-fg-secondary: var(--vscode-descriptionForeground, #9d9d9d);
+  --dl-color-fg-muted: var(--vscode-input-placeholderForeground, #989898);
+  --dl-color-link: var(--vscode-textLink-foreground, #4daafc);
+  --dl-color-link-hover: var(--vscode-textLink-activeForeground, #4daafc);
+
+  /* ---------- Colour: lines ---------- */
+  /* contrastBorder exists only in high-contrast themes, so it wins there and is skipped elsewhere. */
+  --dl-color-border: var(--vscode-contrastBorder, var(--vscode-widget-border, #313131));
+  --dl-color-border-input: var(--vscode-contrastBorder, var(--vscode-input-border, #3c3c3c));
+  --dl-color-focus: var(--vscode-focusBorder, #0078d4);
+
+  /* ---------- Colour: actions ---------- */
+  --dl-color-primary: var(--vscode-button-background, #0078d4);
+  --dl-color-primary-fg: var(--vscode-button-foreground, #ffffff);
+  --dl-color-primary-hover: var(--vscode-button-hoverBackground, #026ec1);
+  --dl-color-secondary: var(--vscode-button-secondaryBackground, #313131);
+  --dl-color-secondary-fg: var(--vscode-button-secondaryForeground, #cccccc);
+  --dl-color-secondary-hover: var(--vscode-button-secondaryHoverBackground, #3c3c3c);
+
+  /* ---------- Colour: inputs ---------- */
+  --dl-color-input-bg: var(--vscode-input-background, #313131);
+  --dl-color-input-fg: var(--vscode-input-foreground, #cccccc);
+
+  /* ---------- Colour: meaning (always paired with an icon or a sign, never alone) ---------- */
+  --dl-color-success: var(--vscode-testing-iconPassed, #73c991);
+  --dl-color-added: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+  --dl-color-removed: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+  --dl-color-warning: var(--vscode-editorWarning-foreground, #cca700);
+  --dl-color-danger: var(--vscode-errorForeground, #f85149);
+
+  /* The two things allowed to "shout": Claude's questions and permission prompts. */
+  --dl-color-attention-bg: var(--vscode-inputValidation-infoBackground, #063b49);
+  --dl-color-attention-border: var(--vscode-inputValidation-infoBorder, #1b80b2);
+  --dl-color-warning-bg: var(--vscode-inputValidation-warningBackground, #352a05);
+  --dl-color-warning-border: var(--vscode-inputValidation-warningBorder, #b89500);
+  --dl-color-danger-bg: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+  --dl-color-danger-border: var(--vscode-inputValidation-errorBorder, #be1100);
+
+  /* ---------- Colour: misc ---------- */
+  --dl-color-badge-bg: var(--vscode-badge-background, #616161);
+  --dl-color-badge-fg: var(--vscode-badge-foreground, #f8f8f8);
+  --dl-color-code-bg: var(--vscode-textCodeBlock-background, #2b2b2b);
+  --dl-color-quote-bg: var(--vscode-textBlockQuote-background, #2b2b2b);
+  --dl-color-quote-border: var(--vscode-textBlockQuote-border, #616161);
+  --dl-color-progress: var(--vscode-progressBar-background, #0078d4);
+  --dl-color-shadow: var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  --dl-color-skeleton: var(--vscode-input-background, #313131);
+
+  /* ---------- Typography ---------- */
+  --dl-font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Ubuntu, sans-serif);
+  --dl-font-family-mono: var(--vscode-editor-font-family, Consolas, "Courier New", monospace);
+
+  /* Scale is relative to the user's VS Code font size (13px by default): 11 / 12 / 13 / 14 / 16. */
+  --dl-font-size-base: var(--vscode-font-size, 13px);
+  --dl-font-size-xs: calc(var(--dl-font-size-base) - 2px);
+  --dl-font-size-sm: calc(var(--dl-font-size-base) - 1px);
+  --dl-font-size-md: calc(var(--dl-font-size-base) + 1px);
+  --dl-font-size-lg: calc(var(--dl-font-size-base) + 3px);
+  --dl-font-size-code: calc(var(--dl-font-size-base) - 1px);
+
+  --dl-line-height-tight: 1.3;
+  --dl-line-height-base: 1.5;
+  --dl-line-height-code: 1.45;
+
+  --dl-font-weight-regular: 400;
+  --dl-font-weight-semibold: 600;
+
+  --dl-letter-spacing-label: 0.04em;
+
+  /* ---------- Spacing (4px grid) ---------- */
+  --dl-space-2xs: 2px;
+  --dl-space-xs: 4px;
+  --dl-space-sm: 8px;
+  --dl-space-md: 12px;
+  --dl-space-lg: 16px;
+  --dl-space-xl: 24px;
+  --dl-space-2xl: 32px;
+  --dl-space-3xl: 48px;
+
+  /* ---------- Radii ---------- */
+  --dl-radius-sm: 2px;   /* buttons, inputs: VS Code convention */
+  --dl-radius-md: 4px;   /* cards, callouts, code blocks */
+  --dl-radius-lg: 6px;   /* user message, composer box */
+  --dl-radius-full: 999px;
+
+  /* ---------- Lines ---------- */
+  --dl-border-width: 1px;
+  --dl-border-width-strong: 2px;
+  --dl-focus-width: 1px;
+  --dl-focus-offset: 2px;
+  --dl-progress-height: 2px;
+
+  /* ---------- Shadows (overlays only; the panel itself is flat like VS Code) ---------- */
+  --dl-shadow-overlay: 0 2px 8px var(--dl-color-shadow);
+
+  /* ---------- Sizes ---------- */
+  --dl-icon-size: 16px;
+  --dl-icon-size-lg: 32px;
+  --dl-control-height: 26px;      /* VS Code button height for mouse */
+  --dl-control-height-sm: 22px;   /* toolbar icon buttons */
+  --dl-touch-target: 44px;        /* used instead of the two above on touch screens */
+  --dl-composer-min-height: 40px; /* about two lines */
+  --dl-composer-max-height: 200px;/* about eight lines, then it scrolls */
+  --dl-content-max-width: 720px;  /* readable line length when the panel is very wide */
+  --dl-skeleton-width-long: 92%;
+  --dl-skeleton-width-short: 55%;
+  --dl-progress-segment: 30%;
+
+  /* ---------- Opacity ---------- */
+  --dl-opacity-disabled: 0.4;     /* VS Code's own disabled look */
+  --dl-opacity-pulse: 0.5;
+
+  /* ---------- Breakpoints (panel width; media/container queries need the literal value) ---------- */
+  --dl-breakpoint-narrow: 360px;  /* design target; below this everything stacks */
+  --dl-breakpoint-wide: 480px;    /* action rows go side by side */
+  --dl-breakpoint-xwide: 720px;   /* content is centred at --dl-content-max-width */
+
+  /* ---------- Motion ---------- */
+  --dl-duration-fast: 100ms;
+  --dl-duration-base: 200ms;
+  --dl-duration-spin: 1000ms;
+  --dl-duration-pulse: 1400ms;
+  --dl-duration-progress: 1600ms;
+}
+
+/* Touch screens: every control grows to a 44px target. */
+@media (pointer: coarse) {
+  :root {
+    --dl-control-height: var(--dl-touch-target);
+    --dl-control-height-sm: var(--dl-touch-target);
+  }
+}
+
+/* Reduced motion: spinners and pulses stop; the text still says what is happening. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dl-duration-fast: 0ms;
+    --dl-duration-base: 0ms;
+  }
+}
