@@ -4,10 +4,12 @@
  */
 import * as vscode from "vscode";
 import { randomUUID } from "crypto";
+import * as path from "path";
 import type { Ledger } from "./core/store";
 import { asMarkdownCode, splitCode } from "./core/code";
 import { ingest } from "./core/ingest";
 import { getEngine, collect } from "./provider";
+import { localHumanName } from "./core/identity";
 import { cmdLink, recordLine, stateDoc } from "./render";
 
 interface Meta {
@@ -49,6 +51,7 @@ const AGENT_SYSTEM =
   "State clearly any decision you make (approach, library, structure, trade-off) and why — it will be recorded.";
 
 export function registerChat(ctx: vscode.ExtensionContext, getLedger: () => Ledger, onChange: () => void) {
+  let humanName: string | undefined; // looked up once: it runs git, which blocks
   const handler: vscode.ChatRequestHandler = async (request, chatCtx, stream, token) => {
     const ledger = getLedger();
     const session = sessionOf(chatCtx);
@@ -93,17 +96,17 @@ export function registerChat(ctx: vscode.ExtensionContext, getLedger: () => Ledg
         ledger,
         [
           { author: "human", text: request.prompt },
-          { author: "ai", text: fullText },
+          { author: "ai", name: request.model.id, text: fullText },
         ],
         engine,
-        { origin: "vscode-chat", session }
+        { origin: "vscode-chat", session, humanName: (humanName ??= localHumanName(path.dirname(ledger.dir))) }
       );
       if (result) {
         const recs = ledger.records(result.records);
         stream.markdown(
           trusted(
             `\n**Decisions** · node \`${result.node.slice(0, 7)}\`\n\n` +
-              recs.map((r) => "- " + recordLine(r.hash, r.record)).join("\n")
+              recs.map((r) => "- " + recordLine(ledger, r.hash, r.record)).join("\n")
           )
         );
         onChange();

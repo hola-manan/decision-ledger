@@ -13,6 +13,8 @@ import { ingestBacklog } from "./core/batches";
 import { RetryBackoff } from "./core/backoff";
 import { ApiError, NoModelError } from "../engine/src";
 import { getEngine } from "./provider";
+import { localHumanName } from "./core/identity";
+import { ConfigError } from "./core/parameters";
 
 interface FileState {
   offset: number;
@@ -36,6 +38,11 @@ const SET_KEY_ACTIONS: Record<string, string> = {
   "Set Anthropic API Key": "ledger.setApiKey",
 };
 
+/** Offered when .ledger/config.json can't be used. */
+const EDIT_CONFIG_ACTIONS: Record<string, string> = {
+  "Edit Decision Parameters": "ledger.editParameters",
+};
+
 export class AgentWatcher implements vscode.Disposable {
   private timer?: NodeJS.Timeout;
   private busy = false;
@@ -46,6 +53,8 @@ export class AgentWatcher implements vscode.Disposable {
   private scanBackoff = new RetryBackoff();
   /** The key-setup warning currently shown, so several files failing for want of a model show it once. */
   private shownWarning: string | undefined;
+  /** Looked up once: the person at this machine is the human in these sessions. */
+  private humanName: string | undefined;
 
   constructor(
     private ctx: vscode.ExtensionContext,
@@ -174,7 +183,8 @@ export class AgentWatcher implements vscode.Disposable {
     if (!pend.turns.length) return false;
     const session = pend.turns.find((t) => t.session)?.session || path.basename(file, ".jsonl");
     const model = await getEngine(this.ctx);
-    await ingestBacklog(ledger, pend.turns, model, { origin: "claude-code", session }, MAX_TURNS_PER_BATCH, (batch) => {
+    const humanName = (this.humanName ??= localHumanName(this.workspace));
+    await ingestBacklog(ledger, pend.turns, model, { origin: "claude-code", session, humanName }, MAX_TURNS_PER_BATCH, (batch) => {
       const outcome = batch.result ? `${batch.result.records.length} decisions, node ${batch.result.node.slice(0, 7)}` : "no decisions";
       this.log.appendLine(`claude-code ${session.slice(0, 8)}: ${batch.turns} turns → ${outcome}`);
       if (batch.result) this.onChange();
@@ -190,17 +200,27 @@ export class AgentWatcher implements vscode.Disposable {
     if (!backoff.fail(failureKey(error), Date.now())) return;
     const message = error instanceof Error ? error.message : String(error);
     this.log.appendLine(`watcher error (${source}): ${message} (retrying with backoff; repeats are not logged)`);
-    if (error instanceof NoModelError && this.shownWarning !== message) {
+    const fixes = userFixes(error);
+    if (fixes && this.shownWarning !== message) {
       this.shownWarning = message;
-      this.offerKeySetup(message).catch((e) => this.log.appendLine(`could not open key setup: ${e?.message ?? e}`));
+      this.offerFix(message, fixes).catch((e) => this.log.appendLine(`could not offer a fix: ${e?.message ?? e}`));
     }
   }
 
-  /** Only a missing model is worth interrupting the user for: they're the one who can fix it. */
-  private async offerKeySetup(message: string) {
-    const pick = await vscode.window.showWarningMessage(`Decision Ledger can't process agent sessions: ${message}`, ...Object.keys(SET_KEY_ACTIONS));
-    if (pick) await vscode.commands.executeCommand(SET_KEY_ACTIONS[pick]);
+  private async offerFix(message: string, fixes: Record<string, string>) {
+    const pick = await vscode.window.showWarningMessage(`Decision Ledger can't process agent sessions: ${message}`, ...Object.keys(fixes));
+    if (pick) await vscode.commands.executeCommand(fixes[pick]);
   }
+}
+
+/**
+ * Only failures the user can fix are worth interrupting them for: a missing model, or a
+ * broken parameters file (which otherwise stops all recording without a visible sign).
+ */
+function userFixes(error: unknown): Record<string, string> | undefined {
+  if (error instanceof NoModelError) return SET_KEY_ACTIONS;
+  if (error instanceof ConfigError) return EDIT_CONFIG_ACTIONS;
+  return undefined;
 }
 
 /** Stable identity for an error: API failures differ per request (ids in the body), so key them by provider and status. */

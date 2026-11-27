@@ -2,7 +2,7 @@
 export * from "./contract";
 export * from "./errors";
 export { extractDecisions } from "./extract";
-export { parseExtractionInput } from "./schemas";
+export { parseExtractionInput, parseParameterDefinitions } from "./schemas";
 export { modelFromEnv, type ModelEnv } from "./config";
 export { anthropicModel, DEFAULT_ANTHROPIC_MODEL } from "./models/anthropic";
 export { geminiModel, DEFAULT_GEMINI_MODEL } from "./models/gemini";

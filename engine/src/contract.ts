@@ -3,10 +3,38 @@
  * in prose; keep the two in step.
  */
 
-export type Author = "human" | "ai";
+export type AuthorKind = "human" | "ai";
+
+/** Who brought a message: a person (by name) or an AI (by model name). Projects can have many people. */
+export interface Author {
+  kind: AuthorKind;
+  name: string;
+}
 
 /** What the caller puts where it removed code. The engine never receives code. */
 export const CODE_PLACEHOLDER = "[code omitted]";
+
+/** Every grade is a whole number on this scale. */
+export const GRADE_MIN = 1;
+export const GRADE_MAX = 5;
+
+/**
+ * One thing each decision is graded on, e.g. reversibility. The set is chosen by the
+ * caller (the project owner), never by the model; the model only gives the grades.
+ */
+export interface ParameterDefinition {
+  /** Stable key used in `grades`: a letter, then letters, digits or underscores. */
+  id: string;
+  /** Human-readable name, e.g. "Reversibility". */
+  name: string;
+  /** What a grade of GRADE_MIN means, e.g. "practically irreversible". */
+  low: string;
+  /** What a grade of GRADE_MAX means, e.g. "trivial to undo". */
+  high: string;
+}
+
+/** Parameter id → grade from GRADE_MIN to GRADE_MAX. */
+export type Grades = Record<string, number>;
 
 /** One chat message. */
 export interface EngineTurn {
@@ -33,6 +61,8 @@ export interface ExtractionInput {
   turns: EngineTurn[];
   /** Decisions in force before these turns, oldest first. */
   activeDecisions: ActiveDecision[];
+  /** What to grade each decision on. May be empty. */
+  parameters: ParameterDefinition[];
 }
 
 export interface ExtractedDecision {
@@ -46,6 +76,8 @@ export interface ExtractedDecision {
   author: Author;
   /** A verbatim excerpt of that turn (ignoring case and whitespace). Dropped if it can't be found there. */
   quote?: string;
+  /** Only input parameter ids, only whole numbers from GRADE_MIN to GRADE_MAX. A grade the model didn't give is absent. */
+  grades: Grades;
   /** The id of the active decision this one replaces: always one the model was shown (the latest 40). */
   supersedes?: string;
 }

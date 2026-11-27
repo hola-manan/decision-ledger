@@ -4,10 +4,12 @@
  *   .ledger/
  *     HEAD                  "ref: refs/heads/main" or a node hash (detached)
  *     refs/heads/<branch>   node hash
- *     objects/ab/cdef...    JSON objects: turn | record | node
+ *     objects/ab/cdef...    JSON objects: turn | record | node | parameters
+ *     config.json           the project owner's settings, e.g. the grading parameters
  *
- * - turn   : one chat message (human or ai) with code stripped. Records are grounded to it.
- * - record : one decision. Ordered by `seq` (monotonic along a branch's history).
+ * - turn       : one chat message with its author (kind + name), code stripped. Records are grounded to it.
+ * - record     : one decision: source, grades, author. Ordered by `seq` (monotonic along a branch's history).
+ * - parameters : the parameter set a record was graded against, so the set can change later.
  * - node   : a snapshot of the database state, like a git commit. Points at its parent,
  *            lists the records it added, and the full ordered state after it.
  */
@@ -15,51 +17,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 
-export type Author = "human" | "ai";
+import { LedgerObject, LedgerNode, DecisionRecord, NewDecision, ParameterDefinition, Turn, upgradeRecord, upgradeTurn } from "./records";
 
-export interface Turn {
-  type: "turn";
-  author: Author;
-  text: string;
-  session: string;
-  origin: string; // e.g. "vscode-chat", "claude-code"
-  externalId?: string;
-  timestamp: string;
-}
-
-export interface DecisionRecord {
-  type: "record";
-  seq: number;
-  decision: string;
-  rationale?: string;
-  author: Author;
-  turn: string; // hash of the Turn it was brought by
-  quote?: string; // verbatim excerpt from that turn
-  supersedes?: string; // hash of an earlier record this one replaces
-  timestamp: string;
-}
-
-export interface LedgerNode {
-  type: "node";
-  parent: string | null;
-  message: string;
-  origin: string;
-  session?: string;
-  added: string[]; // record hashes added in this node, in order
-  state: string[]; // every record hash in the db at this node, in order
-  timestamp: string;
-}
-
-export type LedgerObject = Turn | DecisionRecord | LedgerNode;
-
-export interface NewDecision {
-  decision: string;
-  rationale?: string;
-  author: Author;
-  turn: string;
-  quote?: string;
-  supersedes?: string;
-}
+export * from "./records";
 
 function canonical(v: unknown): string {
   if (Array.isArray(v)) return "[" + v.map(canonical).join(",") + "]";
@@ -189,6 +149,11 @@ export class Ledger {
     return this.put({ type: "turn", ...t });
   }
 
+  /** Stores a parameter set once (same set, same hash) for records to refer to. */
+  addParameterSet(parameters: ParameterDefinition[]): string {
+    return this.put({ type: "parameters", parameters });
+  }
+
   /**
    * Append decisions as a new node on top of HEAD. Records get the next `seq`
    * numbers, so order is always preserved. Returns null if nothing was added.
@@ -200,7 +165,7 @@ export class Ledger {
     if (!decisions.length) return null;
     const parent = this.head();
     const prevState = parent ? this.get<LedgerNode>(parent).state : [];
-    let seq = prevState.length ? this.get<DecisionRecord>(prevState[prevState.length - 1]).seq : 0;
+    let seq = prevState.length ? this.record(prevState[prevState.length - 1]).seq : 0;
     const now = new Date().toISOString();
     const added = decisions.map((d) =>
       this.put({
@@ -208,9 +173,10 @@ export class Ledger {
         seq: ++seq,
         decision: d.decision.trim(),
         rationale: d.rationale?.trim() || undefined,
+        source: d.source,
+        grades: d.grades,
+        parameterSet: d.parameterSet,
         author: d.author,
-        turn: d.turn,
-        quote: d.quote,
         supersedes: d.supersedes,
         timestamp: now,
       })
@@ -242,8 +208,18 @@ export class Ledger {
     return out;
   }
 
+  /** A record in today's shape, whichever version wrote it. */
+  record(hash: string): DecisionRecord {
+    return upgradeRecord(this.get<DecisionRecord>(hash)); // may be a v0.1 object on disk
+  }
+
+  /** A turn in today's shape, whichever version wrote it. */
+  turn(hash: string): Turn {
+    return upgradeTurn(this.get<Turn>(hash)); // may be a v0.1 object on disk
+  }
+
   records(hashes: string[]): { hash: string; record: DecisionRecord }[] {
-    return hashes.map((hash) => ({ hash, record: this.get<DecisionRecord>(hash) }));
+    return hashes.map((hash) => ({ hash, record: this.record(hash) }));
   }
 
   /** All records at a node, in order. */

@@ -1,28 +1,42 @@
 {
+  "parameters": [
+    {
+      "id": "codeSpan",
+      "name": "Code span",
+      "low": "touches a single line or function",
+      "high": "touches the whole codebase"
+    },
+    {
+      "id": "reversibility",
+      "name": "Reversibility",
+      "low": "practically irreversible (data, public API, contracts)",
+      "high": "trivial to undo"
+    }
+  ],
   "turns": [
     {
       "id": "t1",
-      "author": "human",
+      "author": { "kind": "human", "name": "Priya" },
       "text": "Let's build the signup flow. I don't want passwords at all, magic links only. Fewer support tickets."
     },
     {
       "id": "t2",
-      "author": "ai",
+      "author": { "kind": "ai", "name": "claude-opus-5-5" },
       "text": "Got it. I'll send magic links by email and expire them after 15 minutes, so a leaked link stops working quickly. Here's the token helper:\n[code omitted]"
     },
     {
       "id": "t3",
-      "author": "human",
+      "author": { "kind": "human", "name": "Sam" },
       "text": "Sounds good. Actually, store users in Postgres, not Mongo. We already run Postgres for billing."
     },
     {
       "id": "t4",
-      "author": "ai",
+      "author": { "kind": "ai", "name": "claude-opus-5-5" },
       "text": "Switched the user store to Postgres. I read the existing billing schema to match its conventions."
     }
   ],
   "activeDecisions": [
-    { "id": "d1", "author": "ai", "decision": "Store users in MongoDB." },
-    { "id": "d2", "author": "human", "decision": "Use TypeScript for the backend." }
+    { "id": "d1", "author": { "kind": "ai", "name": "claude-opus-5-5" }, "decision": "Store users in MongoDB." },
+    { "id": "d2", "author": { "kind": "human", "name": "Priya" }, "decision": "Use TypeScript for the backend." }
   ]
 }

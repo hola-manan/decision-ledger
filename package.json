@@ -2,7 +2,7 @@
   "name": "decision-ledger",
   "displayName": "Decision Ledger",
   "description": "Turns your AI agent conversations into grounded, ordered decision records in a git-style tree. Code passes straight through.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "decision-ledger",
   "license": "MIT",
   "workspaces": [
@@ -108,6 +108,11 @@
       {
         "command": "ledger.setGeminiApiKey",
         "title": "Set Vertex AI (Gemini) API Key",
+        "category": "Ledger"
+      },
+      {
+        "command": "ledger.editParameters",
+        "title": "Edit Decision Parameters",
         "category": "Ledger"
       },
       {

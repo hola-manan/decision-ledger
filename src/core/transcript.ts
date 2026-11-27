@@ -5,10 +5,12 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import type { Author } from "./store";
+import type { AuthorKind } from "./store";
 
 export interface RawTurn {
-  author: Author;
+  author: AuthorKind;
+  /** The model that wrote an AI turn, when the log says; the human's name is never in the log. */
+  name?: string;
   text: string;
   externalId: string;
   timestamp: string;
@@ -51,6 +53,7 @@ export function parseClaudeCodeLines(lines: string[], startOffset?: number): Raw
     if (!text) continue;
     appendTurn(turns, {
       author: e.type === "user" ? "human" : "ai",
+      name: e.type === "assistant" ? modelName(e) : undefined,
       text,
       externalId: String(e.uuid ?? ""),
       timestamp: String(e.timestamp ?? new Date().toISOString()),
@@ -71,6 +74,7 @@ function appendTurn(turns: RawTurn[], turn: RawTurn): void {
   const prev = turns[turns.length - 1];
   if (prev?.author === "ai" && turn.author === "ai") {
     prev.text += "\n" + turn.text;
+    prev.name ??= turn.name;
     // Chunks of one source turn share an endOffset (see core/batches); move them all
     // together, or a batch could end between them and save an offset past unsent text.
     const oldEnd = prev.endOffset;
@@ -90,12 +94,22 @@ function parseJsonLine(line: string): any {
 }
 
 /** A main-thread user/assistant message that belongs in the conversation. */
+const SYNTHETIC_MODEL = "<synthetic>";
+
+/** The model that wrote an assistant entry, if the log says. */
+function modelName(e: any): string | undefined {
+  const model = e.message?.model;
+  return typeof model === "string" && model.trim() ? model : undefined;
+}
+
 function isConversationEntry(e: any): boolean {
   if (e.type !== "user" && e.type !== "assistant") return false;
   if (e.isSidechain || e.isMeta) return false;
   // Context-compaction summaries are AI-written recaps stored as "user" entries.
   if (e.isCompactSummary || e.isVisibleInTranscriptOnly) return false;
-  if (e.type === "assistant") return true;
+  // Claude Code's own notices ("No response requested.", usage limits) are written as assistant
+  // messages from a "<synthetic>" model; no AI said them.
+  if (e.type === "assistant") return e.message?.model !== SYNTHETIC_MODEL;
   // Newer logs tag where a user message came from; only "human" ones were typed by the person.
   // Deliberately an allowlist: unknown future kinds are rejected rather than credited to the human.
   // Older logs have no tag, so those rely on harness-text stripping instead.

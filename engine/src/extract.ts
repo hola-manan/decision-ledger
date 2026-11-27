@@ -10,8 +10,8 @@ import { parseModelOutput } from "./parse";
 export async function extractDecisions(input: ExtractionInput, model: Model): Promise<ExtractedDecision[]> {
   const turns = input.turns.filter(hasProse);
   if (!turns.length) return [];
-  const reply = await model(SYSTEM_PROMPT, buildPrompt(turns, input.activeDecisions));
-  return parseModelOutput(reply, turns, input.activeDecisions);
+  const reply = await model(SYSTEM_PROMPT, buildPrompt(turns, input.activeDecisions, input.parameters));
+  return parseModelOutput(reply, { turns, active: input.activeDecisions, parameters: input.parameters });
 }
 
 function hasProse(turn: EngineTurn): boolean {

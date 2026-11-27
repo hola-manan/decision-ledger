@@ -1,6 +1,6 @@
 {
   "name": "decision-ledger-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Conversation in, grounded decisions out. The extraction engine behind Decision Ledger.",
   "license": "MIT",

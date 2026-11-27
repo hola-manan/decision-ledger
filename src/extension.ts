@@ -4,7 +4,17 @@ import { shortHash } from "./core/ingest";
 import { registerChat } from "./chat";
 import { AgentWatcher } from "./watcher";
 import { GEMINI_SECRET_KEY, SECRET_KEY } from "./provider";
-import { diffDoc, recordDoc, stateDoc } from "./render";
+import { diffDoc, gradesText, recordDoc, stateDoc, who } from "./render";
+import { CONFIG_FILE, ensureConfigFile } from "./core/parameters";
+
+function recordTooltip(ledger: Ledger, r: DecisionRecord): string {
+  const parts = [`**${r.decision}**`, who(r.author)];
+  const grades = gradesText(ledger, r);
+  if (grades) parts.push(grades);
+  if (r.rationale) parts.push(`_${r.rationale}_`);
+  if (r.source.quote) parts.push(`> ${r.source.quote}`);
+  return parts.join("\n\n");
+}
 
 function ago(iso: string): string {
   const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
@@ -45,9 +55,9 @@ class TreeProvider implements vscode.TreeDataProvider<Item> {
     }
     const r = el.record;
     const t = new vscode.TreeItem(`#${r.seq} ${r.decision}`);
-    t.description = (r.author === "human" ? "human" : "ai") + (el.dead ? " · superseded" : "");
-    t.iconPath = new vscode.ThemeIcon(r.author === "human" ? "person" : "hubot", el.dead ? new vscode.ThemeColor("disabledForeground") : undefined);
-    t.tooltip = new vscode.MarkdownString(`**${r.decision}**${r.rationale ? `\n\n_${r.rationale}_` : ""}${r.quote ? `\n\n> ${r.quote}` : ""}`);
+    t.description = r.author.name + (el.dead ? " · superseded" : "");
+    t.iconPath = new vscode.ThemeIcon(r.author.kind === "human" ? "person" : "hubot", el.dead ? new vscode.ThemeColor("disabledForeground") : undefined);
+    t.tooltip = new vscode.MarkdownString(recordTooltip(this.ledger(), r));
     t.command = { command: "ledger.openRecord", title: "Open source", arguments: [el.hash] };
     t.contextValue = "record";
     return t;
@@ -84,7 +94,12 @@ export function activate(ctx: vscode.ExtensionContext) {
   const watcher = new AgentWatcher(ctx, getLedger, root, out, refresh);
   if (vscode.workspace.workspaceFolders && vscode.workspace.getConfiguration("ledger").get("agents.watchClaudeCode", true)) watcher.start();
   // A new key or engine setting may fix a failing watcher; don't make it wait out the backoff.
+  // Nor should a fixed .ledger/config.json.
+  const configWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, `.ledger/${CONFIG_FILE}`));
   ctx.subscriptions.push(
+    configWatcher,
+    configWatcher.onDidChange(() => watcher.retryNow()),
+    configWatcher.onDidCreate(() => watcher.retryNow()),
     ctx.secrets.onDidChange(() => watcher.retryNow()),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("ledger.engine")) watcher.retryNow();
@@ -163,6 +178,12 @@ export function activate(ctx: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand("ledger.setApiKey", run(() => promptForApiKey(ctx, SECRET_KEY, "Anthropic"))),
     vscode.commands.registerCommand("ledger.setGeminiApiKey", run(() => promptForApiKey(ctx, GEMINI_SECRET_KEY, "Gemini (Vertex AI express mode)"))),
+    vscode.commands.registerCommand(
+      "ledger.editParameters",
+      run(async () => {
+        await vscode.window.showTextDocument(vscode.Uri.file(ensureConfigFile(getLedger())));
+      })
+    ),
     vscode.commands.registerCommand("ledger.toggleAgentWatch", () => {
       if (watcher.running) watcher.stop();
       else watcher.start();
