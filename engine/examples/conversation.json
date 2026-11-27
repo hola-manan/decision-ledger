@@ -1,0 +1,28 @@
+{
+  "turns": [
+    {
+      "id": "t1",
+      "author": "human",
+      "text": "Let's build the signup flow. I don't want passwords at all, magic links only. Fewer support tickets."
+    },
+    {
+      "id": "t2",
+      "author": "ai",
+      "text": "Got it. I'll send magic links by email and expire them after 15 minutes, so a leaked link stops working quickly. Here's the token helper:\n[code omitted]"
+    },
+    {
+      "id": "t3",
+      "author": "human",
+      "text": "Sounds good. Actually, store users in Postgres, not Mongo. We already run Postgres for billing."
+    },
+    {
+      "id": "t4",
+      "author": "ai",
+      "text": "Switched the user store to Postgres. I read the existing billing schema to match its conventions."
+    }
+  ],
+  "activeDecisions": [
+    { "id": "d1", "author": "ai", "decision": "Store users in MongoDB." },
+    { "id": "d2", "author": "human", "decision": "Use TypeScript for the backend." }
+  ]
+}

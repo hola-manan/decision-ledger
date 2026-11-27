@@ -55,10 +55,14 @@ echo '[{"author":"human","text":"..."},{"author":"ai","text":"..."}]' \
 ```
 `ingest` uses `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` (Vertex AI express mode) if that's the only one set. `LEDGER_MODEL` overrides the model.
 
+## Engine
+
+The extraction engine lives in [engine/](engine/) as its own package, with its own tests and a command to run it alone. It knows nothing about VS Code or storage: it takes a code-free conversation as JSON and returns grounded decisions as JSON. [engine/README.md](engine/README.md) describes the input/output contract and its guarantees. The extension calls it from one place, `src/core/ingest.ts`.
+
 ## Develop
 
 ```
-npm install && npm test      # core tests
+npm install && npm test      # extension + engine tests
 npm run package              # builds the .vsix
 ```
 Press F5 in VS Code to run it in an Extension Development Host.

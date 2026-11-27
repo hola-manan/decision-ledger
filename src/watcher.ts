@@ -11,7 +11,7 @@ import { appendTurns, findSessionFiles, parseClaudeCodeLines, RawTurn } from "./
 import { chunkTurns } from "./core/chunk";
 import { ingestBacklog } from "./core/batches";
 import { RetryBackoff } from "./core/backoff";
-import { ApiError, NoModelError } from "./core/errors";
+import { ApiError, NoModelError } from "../engine/src";
 import { getEngine } from "./provider";
 
 interface FileState {
@@ -173,8 +173,8 @@ export class AgentWatcher implements vscode.Disposable {
     pend.turns = chunkTurns(pend.turns, MAX_CHARS_PER_TURN);
     if (!pend.turns.length) return false;
     const session = pend.turns.find((t) => t.session)?.session || path.basename(file, ".jsonl");
-    const complete = await getEngine(this.ctx);
-    await ingestBacklog(ledger, pend.turns, complete, { origin: "claude-code", session }, MAX_TURNS_PER_BATCH, (batch) => {
+    const model = await getEngine(this.ctx);
+    await ingestBacklog(ledger, pend.turns, model, { origin: "claude-code", session }, MAX_TURNS_PER_BATCH, (batch) => {
       const outcome = batch.result ? `${batch.result.records.length} decisions, node ${batch.result.node.slice(0, 7)}` : "no decisions";
       this.log.appendLine(`claude-code ${session.slice(0, 8)}: ${batch.turns} turns → ${outcome}`);
       if (batch.result) this.onChange();

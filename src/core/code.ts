@@ -3,13 +3,15 @@
  * errs toward finding code: fenced blocks always, and unfenced runs of lines that
  * look like code (e.g. a paste with no ``` around it).
  */
+import { CODE_PLACEHOLDER } from "../../engine/src";
+
+/** The engine's contract defines what removed code is replaced with. */
+export { CODE_PLACEHOLDER };
 
 export interface Segment {
   kind: "prose" | "code";
   text: string;
 }
-
-export const CODE_PLACEHOLDER = "[code omitted]";
 
 const FENCE = /(^|\n)(```|~~~)[^\n]*\n[\s\S]*?(\n\2[ \t]*(?=\n|$)|$)/g;
 

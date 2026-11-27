@@ -14,9 +14,7 @@
  */
 import { Ledger, DecisionRecord } from "./core/store";
 import { ingest } from "./core/ingest";
-import type { Complete } from "./core/engine";
-import { anthropicComplete, DEFAULT_ANTHROPIC_MODEL } from "./core/anthropic";
-import { DEFAULT_GEMINI_MODEL, geminiComplete } from "./core/gemini";
+import { modelFromEnv } from "../engine/src";
 
 const [cmd, ...args] = process.argv.slice(2);
 const l = Ledger.open(process.cwd());
@@ -52,11 +50,11 @@ async function main() {
       l.checkout(args[0]);
       break;
     case "ingest": {
-      const engine = engineFromEnv();
+      const model = modelFromEnv();
       let input = "";
       for await (const c of process.stdin) input += c;
       const turns = JSON.parse(input);
-      const r = await ingest(l, turns, engine, {
+      const r = await ingest(l, turns, model, {
         origin: flag("origin") ?? "cli",
         session: flag("session") ?? new Date().toISOString(),
       });
@@ -68,14 +66,6 @@ async function main() {
       console.log("usage: ledger <log|state|show|diff|branch|checkout|ingest> …");
   }
 }
-/** ANTHROPIC_API_KEY wins if both are set; LEDGER_MODEL overrides the provider's default model. */
-function engineFromEnv(): Complete {
-  const { ANTHROPIC_API_KEY, GEMINI_API_KEY, LEDGER_MODEL } = process.env;
-  if (ANTHROPIC_API_KEY) return anthropicComplete(ANTHROPIC_API_KEY, LEDGER_MODEL ?? DEFAULT_ANTHROPIC_MODEL);
-  if (GEMINI_API_KEY) return geminiComplete(GEMINI_API_KEY, LEDGER_MODEL ?? DEFAULT_GEMINI_MODEL);
-  throw new Error("Set ANTHROPIC_API_KEY or GEMINI_API_KEY (a Vertex AI express-mode key)");
-}
-
 main().catch((e) => {
   console.error(e.message ?? e);
   process.exit(1);

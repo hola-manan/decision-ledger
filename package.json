@@ -5,6 +5,9 @@
   "version": "0.1.0",
   "publisher": "decision-ledger",
   "license": "MIT",
+  "workspaces": [
+    "engine"
+  ],
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -226,7 +229,7 @@
   },
   "scripts": {
     "compile": "tsc -p .",
-    "test": "tsc -p . && node --test out/test/*.test.js",
+    "test": "tsc -p . && node --test out/test/*.test.js && npm test -w engine",
     "package": "tsc -p . && vsce package --no-dependencies"
   },
   "repository": {

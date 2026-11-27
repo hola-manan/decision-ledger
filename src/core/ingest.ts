@@ -1,5 +1,6 @@
-import { Ledger, Author, LedgerNode } from "./store";
-import { ChatTurn, Complete, extractDecisions, stripCode } from "./engine";
+import { Ledger, Author, LedgerNode, NewDecision } from "./store";
+import { stripCode } from "./code";
+import { ActiveDecision, EngineTurn, ExtractedDecision, extractDecisions, Model } from "../../engine/src";
 
 export interface IngestTurn {
   author: Author;
@@ -15,37 +16,53 @@ export interface IngestMeta {
 }
 
 /**
- * The full pipeline: store the (code-stripped) turns, extract grounded decisions,
- * and commit them as one new node. Returns the node hash, or null if no decisions.
+ * The full pipeline: store the turns with code removed, ask the engine for grounded
+ * decisions, and commit them as one new node. Returns null if there were no decisions.
+ * Every path into the ledger comes through here, so this is where code is kept from the model.
  */
 export async function ingest(
   ledger: Ledger,
   turns: IngestTurn[],
-  complete: Complete,
+  model: Model,
   meta: IngestMeta
 ): Promise<{ node: string; records: string[] } | null> {
-  const stored: ChatTurn[] = turns.map((t) => ({
-    author: t.author,
-    text: t.text,
-    id: ledger.addTurn({
-      author: t.author,
-      text: stripCode(t.text),
-      session: meta.session,
-      origin: meta.origin,
-      externalId: t.externalId,
-      timestamp: t.timestamp ?? new Date().toISOString(),
-    }),
-  }));
-  const active = ledger.activeAt();
-  const decisions = await extractDecisions(stored, active, complete);
+  const engineTurns = turns.map((t) => storeTurn(ledger, t, meta));
+  const decisions = await extractDecisions({ turns: engineTurns, activeDecisions: activeDecisions(ledger) }, model);
   if (!decisions.length) return null;
-  const firstHuman = turns.find((t) => t.author === "human")?.text ?? turns[0]?.text ?? "";
-  const summary = stripCode(firstHuman).replace(/\s+/g, " ").slice(0, 60);
-  return ledger.commit(decisions, {
-    message: meta.message ?? (summary || `${meta.origin} session`),
+  return ledger.commit(decisions.map(toNewDecision), {
+    message: meta.message ?? nodeMessage(turns, meta),
     origin: meta.origin,
     session: meta.session,
   });
+}
+
+function storeTurn(ledger: Ledger, turn: IngestTurn, meta: IngestMeta): EngineTurn {
+  const text = stripCode(turn.text);
+  const id = ledger.addTurn({
+    author: turn.author,
+    text,
+    session: meta.session,
+    origin: meta.origin,
+    externalId: turn.externalId,
+    timestamp: turn.timestamp ?? new Date().toISOString(),
+  });
+  return { id, author: turn.author, text };
+}
+
+function activeDecisions(ledger: Ledger): ActiveDecision[] {
+  return ledger.activeAt().map(({ hash, record }) => ({ id: hash, author: record.author, decision: record.decision }));
+}
+
+function toNewDecision(d: ExtractedDecision): NewDecision {
+  return { decision: d.decision, rationale: d.rationale, author: d.author, turn: d.turnId, quote: d.quote, supersedes: d.supersedes };
+}
+
+const MAX_NODE_MESSAGE_CHARS = 60;
+
+function nodeMessage(turns: IngestTurn[], meta: IngestMeta): string {
+  const firstHuman = turns.find((t) => t.author === "human")?.text ?? turns[0]?.text ?? "";
+  const summary = stripCode(firstHuman).replace(/\s+/g, " ").slice(0, MAX_NODE_MESSAGE_CHARS);
+  return summary || `${meta.origin} session`;
 }
 
 export function shortHash(h: string): string {

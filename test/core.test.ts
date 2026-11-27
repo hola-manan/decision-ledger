@@ -4,14 +4,12 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { Ledger } from "../src/core/store";
-import { stripCode, splitCode, asMarkdownCode, parseDecisions, extractDecisions } from "../src/core/engine";
+import { stripCode, splitCode, asMarkdownCode } from "../src/core/code";
 import { ingest } from "../src/core/ingest";
-import { geminiComplete } from "../src/core/gemini";
 import { parseClaudeCodeLines, appendTurns, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
 import { chunkTurns, splitText } from "../src/core/chunk";
 import { batchSize, ingestBacklog } from "../src/core/batches";
-import { ApiError } from "../src/core/errors";
-import type { Complete } from "../src/core/engine";
+import type { Model } from "../engine/src";
 import { RetryBackoff, FIRST_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS } from "../src/core/backoff";
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "ledger-"));
@@ -100,53 +98,6 @@ test("asMarkdownCode wraps unfenced code in a fence it can't close early", () =>
   assert.equal(asMarkdownCode("a = 1\n  ```\nb = 2"), "````\na = 1\n  ```\nb = 2\n````");
 });
 
-test("gemini: sends system + user to Vertex express with the key in a header, returns the text", async () => {
-  const realFetch = globalThis.fetch;
-  let sent: { url: string; init: any } | undefined;
-  globalThis.fetch = (async (url: string, init: any) => {
-    sent = { url, init };
-    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"decisions":' }, { text: "[]}" }] } }] }));
-  }) as typeof fetch;
-  try {
-    const text = await geminiComplete("KEY123", "gemini-3.8-flash")("SYS", "USER");
-    assert.equal(text, '{"decisions":[]}');
-    assert.equal(sent!.url, "https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-3.8-flash:generateContent");
-    assert.ok(!sent!.url.includes("KEY123"));
-    assert.equal(new Headers(sent!.init.headers).get("x-goog-api-key"), "KEY123");
-    const body = JSON.parse(sent!.init.body);
-    assert.equal(body.systemInstruction.parts[0].text, "SYS");
-    assert.equal(body.contents[0].parts[0].text, "USER");
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-});
-
-test("gemini: API errors surface status without the key", async () => {
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = (async () => new Response("quota exceeded", { status: 429 })) as unknown as typeof fetch;
-  try {
-    await assert.rejects(
-      geminiComplete("KEY123", "m")("s", "u"),
-      (e: Error) => e instanceof ApiError && e.status === 429 && !e.message.includes("KEY123")
-    );
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-});
-
-test("gemini: a blocked or empty answer says why instead of returning empty text", async () => {
-  const realFetch = globalThis.fetch;
-  const respond = (body: unknown) => (async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
-  try {
-    globalThis.fetch = respond({ promptFeedback: { blockReason: "SAFETY" } });
-    await assert.rejects(geminiComplete("k", "m")("s", "u"), /no text \(SAFETY\)/);
-    globalThis.fetch = respond({ candidates: [{ content: { parts: [] }, finishReason: "MAX_TOKENS" }] });
-    await assert.rejects(geminiComplete("k", "m")("s", "u"), /no text \(MAX_TOKENS\)/);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-});
-
 test("store: ordered records, nodes form a chain, state accumulates", () => {
   const l = Ledger.open(tmp());
   const turn = l.addTurn({ author: "human", text: "use postgres", session: "s", origin: "t", timestamp: "x" });
@@ -188,37 +139,21 @@ test("store: branches fork the tree", () => {
   assert.equal(l.branches().length, 2);
 });
 
-test("parseDecisions grounds to real turns and verifies quotes", () => {
-  const turns = [
-    { id: "aaaaaaaaaaaa1", author: "human" as const, text: "Let's not support IE11 at all." },
-    { id: "bbbbbbbbbbbb2", author: "ai" as const, text: "I'll use Vite for the build since it's faster." },
-  ];
-  const raw = `Here you go:\n{"decisions":[
-    {"decision":"Drop IE11 support","author":"human","turn":"aaaaaaaaaa","quote":"not support IE11 at all"},
-    {"decision":"Build with Vite","rationale":"faster","author":"human","turn":"bbbbbbbbbb","quote":"made up words"}
-  ]}`;
-  const out = parseDecisions(raw, turns, []);
-  assert.equal(out.length, 2);
-  assert.equal(out[0].quote, "not support IE11 at all");
-  assert.equal(out[1].author, "ai", "author follows the grounding turn");
-  assert.equal(out[1].quote, undefined, "unverifiable quote dropped");
-});
-
-test("engine never sends code to the model", async () => {
+test("ingest never sends code to the model, and never stores it", async () => {
+  const l = Ledger.open(tmp());
   let seen = "";
-  await extractDecisions(
-    [{ id: "t1", author: "ai", text: "Switching to SQLite.\n```js\nSECRET_CODE()\n```" }],
-    [],
-    async (_s, u) => ((seen = u), '{"decisions":[]}')
-  );
+  const model: Model = async (_s, u) => ((seen = u), '{"decisions":[{"decision":"Use SQLite","turn":"1"}]}');
+  await ingest(l, [{ author: "ai", text: "Switching to SQLite.\n```js\nSECRET_CODE()\n```" }], model, { origin: "test", session: "s" });
   assert.ok(seen.includes("Switching to SQLite"));
   assert.ok(!seen.includes("SECRET_CODE"));
+  const [rec] = l.stateAt();
+  assert.ok(!l.get<any>(rec.record.turn).text.includes("SECRET_CODE"));
 });
 
 test("ingest: end to end with a fake model", async () => {
   const l = Ledger.open(tmp());
   const fake = async (_s: string, u: string) => {
-    const id = u.match(/turn id="([0-9a-f]+)" author="human"/)![1];
+    const id = u.match(/turn id="(\w+)" author="human"/)![1];
     return JSON.stringify({ decisions: [{ decision: "Use tabs", author: "human", turn: id, quote: "use tabs" }] });
   };
   const r = await ingest(l, [{ author: "human", text: "Please use tabs" }, { author: "ai", text: "Done." }], fake, {
@@ -229,6 +164,19 @@ test("ingest: end to end with a fake model", async () => {
   const [rec] = l.stateAt();
   assert.equal(rec.record.quote, "use tabs");
   assert.equal(l.get<any>(rec.record.turn).text, "Please use tabs");
+});
+
+test("ingest: a decision the engine marks as replacing #1 supersedes that ledger record", async () => {
+  const l = Ledger.open(tmp());
+  const meta = { origin: "test", session: "s" };
+  await ingest(l, [{ author: "human", text: "Use MySQL" }], async () => '{"decisions":[{"decision":"Use MySQL","turn":"1"}]}', meta);
+  let prompt = "";
+  const replaces: Model = async (_s, u) => ((prompt = u), '{"decisions":[{"decision":"Use Postgres","turn":"1","supersedes":"#1"}]}');
+  await ingest(l, [{ author: "human", text: "Switch to Postgres" }], replaces, meta);
+  const [mysql, postgres] = l.stateAt();
+  assert.match(prompt, /#1 \(human\) Use MySQL/);
+  assert.equal(postgres.record.supersedes, mysql.hash);
+  assert.deepEqual(l.activeAt().map((r) => r.record.decision), ["Use Postgres"]);
 });
 
 test("transcript: Claude Code JSONL to turns, code dropped", () => {
@@ -348,12 +296,12 @@ test("batches: a failure part-way keeps committed batches and a retry neither lo
   const l = Ledger.open(tmp());
   const turn = (i: number) => ({ author: "human" as const, text: `Decide thing ${i}`, externalId: "", timestamp: "t", session: "S", endOffset: i * 10 });
   const backlog = [1, 2, 3, 4].map(turn);
-  const oneDecisionPerTurn: Complete = async (_s, user) => {
-    const ids = [...user.matchAll(/<turn id="(\w+)"/g)].map((m) => m[1]);
-    return JSON.stringify({ decisions: ids.map((id) => ({ decision: `Decision for ${id}`, turn: id, author: "human" })) });
+  const oneDecisionPerTurn: Model = async (_s, user) => {
+    const sent = [...user.matchAll(/<turn id="(\w+)" author="\w+">\n(.*)\n/g)];
+    return JSON.stringify({ decisions: sent.map(([, id, text]) => ({ decision: `Decision for: ${text}`, turn: id })) });
   };
   let calls = 0;
-  const failsSecondTime: Complete = async (s, u) => {
+  const failsSecondTime: Model = async (s, u) => {
     if (++calls === 2) throw new Error("quota exceeded");
     return oneDecisionPerTurn(s, u);
   };

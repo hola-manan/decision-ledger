@@ -8,7 +8,7 @@
  * it repeats its already-committed chunks.
  */
 import type { Ledger } from "./store";
-import type { Complete } from "./engine";
+import type { Model } from "../../engine/src";
 import type { RawTurn } from "./transcript";
 import { ingest, IngestMeta } from "./ingest";
 
@@ -27,7 +27,7 @@ export interface BatchCommitted {
 export async function ingestBacklog(
   ledger: Ledger,
   backlog: RawTurn[],
-  complete: Complete,
+  model: Model,
   meta: IngestMeta,
   maxTurnsPerBatch: number,
   onCommitted: (batch: BatchCommitted) => void
@@ -35,7 +35,7 @@ export async function ingestBacklog(
   while (backlog.length) {
     const size = batchSize(backlog, maxTurnsPerBatch);
     const batch = backlog.slice(0, size);
-    const result = await ingest(ledger, batch, complete, meta);
+    const result = await ingest(ledger, batch, model, meta);
     backlog.splice(0, size);
     const endsOnBoundary = !backlog.length || backlog[0].endOffset !== batch[size - 1].endOffset;
     onCommitted({ turns: size, result, safeOffset: endsOnBoundary ? batch[size - 1].endOffset : undefined });

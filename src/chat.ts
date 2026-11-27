@@ -5,7 +5,7 @@
 import * as vscode from "vscode";
 import { randomUUID } from "crypto";
 import type { Ledger } from "./core/store";
-import { asMarkdownCode, splitCode } from "./core/engine";
+import { asMarkdownCode, splitCode } from "./core/code";
 import { ingest } from "./core/ingest";
 import { getEngine, collect } from "./provider";
 import { cmdLink, recordLine, stateDoc } from "./render";

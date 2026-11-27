@@ -1,0 +1,17 @@
+{
+  "name": "decision-ledger-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conversation in, grounded decisions out. The extraction engine behind Decision Ledger.",
+  "license": "MIT",
+  "main": "./out/src/index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "tsc -p . && node --test out/test/*.test.js",
+    "extract": "tsc -p . && node out/src/run.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}
