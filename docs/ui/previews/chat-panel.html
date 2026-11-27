@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en" class="theme-dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Chat panel preview</title>
+  <meta name="description" content="Every state of the Decision Ledger chat panel: Claude Code underneath, the important information on top.">
   <link rel="stylesheet" href="../tokens.css">
   <link rel="stylesheet" href="vscode-theme.css">
   <link rel="stylesheet" href="preview.css">
@@ -36,15 +37,15 @@
 <div class="pv-frame" data-width="narrow">
 
   <!-- Stands in for the VS Code view title bar (contributed via view/title menus, not drawn by the webview). -->
-  <div class="pv-viewtitle">
-    <span class="pv-viewtitle__name">Decision Ledger: Chat</span>
+  <header class="pv-viewtitle">
+    <h1 class="pv-viewtitle__name" aria-label="Decision Ledger: Chat">DECISION LEDGER: CHAT</h1>
     <span class="badge" title="Claude is waiting for you">1</span>
     <button class="btn btn--icon" type="button" aria-label="New conversation" title="New conversation" data-goto="empty"><span class="icon" data-icon="add"></span></button>
     <button class="btn btn--icon" type="button" aria-label="More actions" title="More actions: Open ledger, Edit decision parameters"><span class="icon" data-icon="ellipsis"></span></button>
-  </div>
+  </header>
 
   <!-- ============================== 1. Empty ============================== -->
-  <section class="pv-state" data-state="empty" data-label="1 · Empty: new conversation" data-focus="composer" hidden>
+  <section class="pv-state" data-state="empty" data-label="1. Empty: new conversation" data-focus="composer" hidden>
     <div class="chat">
       <div class="chat__transcript chat__transcript--center">
         <div class="empty-state">
@@ -65,12 +66,12 @@
   </section>
 
   <!-- ============================== 2. Permission ============================== -->
-  <section class="pv-state" data-state="permission" data-label="2 · Needs you: permission prompt" data-waiting="true" hidden>
+  <section class="pv-state" data-state="permission" data-label="2. Needs you: permission prompt" data-waiting="true" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <header class="response__header">
               <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
             </header>
@@ -84,11 +85,12 @@
               <div class="callout__body">
                 <p>Claude wants to run this command in <strong>signup-service</strong>:</p>
                 <pre class="permission__command"><code>npm install prisma @prisma/client</code></pre>
-                <p class="callout__note">Claude's reason: Install Prisma and its client for Postgres.</p>
+                <p class="callout__note">Claude’s reason: Install Prisma and its client for Postgres.</p>
+                <p class="callout__note">“This session” allows any command starting with <code>npm install</code> until you start a new conversation.</p>
               </div>
               <div class="callout__actions">
                 <button class="btn btn--primary" type="button" data-goto="working">Allow</button>
-                <button class="btn btn--secondary" type="button" data-goto="working">Allow <code>npm install</code> for this session</button>
+                <button class="btn btn--secondary" type="button" data-goto="working">Allow <code>npm install …</code> for this session</button>
                 <button class="btn btn--secondary" type="button" data-goto="working">Deny</button>
               </div>
             </section>
@@ -100,24 +102,28 @@
   </section>
 
   <!-- ============================== 3. Working ============================== -->
-  <section class="pv-state" data-state="working" data-label="3 · Claude working (live status)" hidden>
+  <section class="pv-state" data-state="working" data-label="3. Claude working (live status and stream)" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply" aria-busy="true">
+          <article class="response" aria-label="Claude’s reply" aria-busy="true">
             <header class="response__header">
               <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-              <span class="sep" aria-hidden="true">·</span><span>Working</span>
+              <span>Working</span>
             </header>
             <div class="status" role="status" aria-live="polite">
               <span class="icon icon--spin icon--secondary" data-icon="loading"></span>
               <span class="status__text" title="Editing src/db/client.ts…" data-cycle="Editing src/db/client.ts…|Reading src/users/userRepository.ts…|Editing src/users/userRepository.ts…|Running npm test…|Thinking…">Editing src/db/client.ts…</span>
               <span class="status__time" data-clock="74">1:14</span>
             </div>
+            <div class="stream markdown" data-stream aria-label="Claude’s reply so far, as it arrives">
+              <p data-stream-block>I’ll move the user store from MongoDB to Postgres, on the same Postgres instance billing already uses.</p>
+              <p data-stream-block>Plan: add Prisma with a User model that mirrors the current Mongo document, point the database client at Postgres, then rewrite the user repository against Prisma. I’ll keep the old Mongo ID as legacyId so existing magic links and logs still resolve.<span class="stream__caret" aria-hidden="true"></span></p>
+            </div>
             <div data-include="tpl-e2-resolved"></div>
             <section class="section files">
-              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed so far <span class="badge">2</span>
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>2 files changed so far
                 <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>59</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>34</span></span></span>
               </h3>
               <ul class="file-list">
@@ -133,12 +139,12 @@
   </section>
 
   <!-- ============================== 4. Question ============================== -->
-  <section class="pv-state" data-state="question" data-label="4 · Needs you: Claude asks a question" data-waiting="true" data-focus="composer" hidden>
+  <section class="pv-state" data-state="question" data-label="4. Needs you: Claude asks a question" data-waiting="true" data-focus="composer" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <header class="response__header">
               <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
             </header>
@@ -147,11 +153,11 @@
               <span class="status__text">Waiting for your answer</span>
               <span class="status__time">2:31</span>
             </div>
-            <section class="callout callout--attention question" aria-label="Claude's question" data-scroll-anchor>
+            <section class="callout callout--attention question" aria-label="Claude’s question" data-scroll-anchor>
               <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude is asking you</h3>
               <div class="callout__body markdown">
                 <p>While moving users to Postgres I found <strong>14 accounts</strong> that exist in both databases with different email addresses. They look like the March import Sam ran for billing.</p>
-                <p>Magic links go to the account's email, so picking the wrong one would lock those people out.</p>
+                <p>Magic links go to the account’s email, so picking the wrong one would lock those people out.</p>
                 <p>Which email should win when I merge them?</p>
               </div>
               <div class="question__options" role="group" aria-label="Answers Claude suggested">
@@ -163,7 +169,7 @@
             </section>
             <div data-include="tpl-e2-resolved"></div>
             <section class="section files">
-              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed so far <span class="badge">3</span>
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>3 files changed so far
                 <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>105</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>86</span></span></span>
               </h3>
               <ul class="file-list">
@@ -180,12 +186,12 @@
   </section>
 
   <!-- ============================== 5. Extracting ============================== -->
-  <section class="pv-state" data-state="extracting" data-label="5 · Reply done, decisions extracting" hidden>
+  <section class="pv-state" data-state="extracting" data-label="5. Reply done, decisions extracting" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <div data-include="tpl-e2-head"></div>
             <div data-include="tpl-e2-asked"></div>
             <div data-include="tpl-e2-resolved"></div>
@@ -209,7 +215,7 @@
   </section>
 
   <!-- ============================== 6. Processed (success) ============================== -->
-  <section class="pv-state" data-state="processed" data-label="6 · Processed reply (success)" hidden>
+  <section class="pv-state" data-state="processed" data-label="6. Processed reply (success)" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
@@ -222,19 +228,19 @@
   </section>
 
   <!-- ============================== 7. Expanded ============================== -->
-  <section class="pv-state" data-state="expanded" data-label="7 · Full reply expanded" hidden>
+  <section class="pv-state" data-state="expanded" data-label="7. Full reply expanded, a sentence selected" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <div data-include="tpl-e2-head"></div>
             <div data-include="tpl-e2-asked"></div>
             <div data-include="tpl-e2-resolved"></div>
             <div data-include="tpl-e2-decisions"></div>
             <div data-include="tpl-e2-files"></div>
-            <details class="disclosure full-reply" data-open-on-show data-scroll-anchor open>
-              <div data-include="tpl-e2-full-inner"></div>
+            <details class="disclosure full-reply" data-open-on-show open>
+              <div data-include="tpl-e2-full-inner-selected"></div>
             </details>
           </article>
         </div>
@@ -243,8 +249,55 @@
     </div>
   </section>
 
-  <!-- ============================== 8. No decisions ============================== -->
-  <section class="pv-state" data-state="no-decisions" data-label="8 · Reply with no decisions (empty)" hidden>
+  <!-- ============================== 8. A missed decision, saved ============================== -->
+  <section class="pv-state" data-state="saved-decision" data-label="8. The missed decision, saved" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e2"></div>
+          <article class="response" aria-label="Claude’s reply">
+            <div data-include="tpl-e2-head"></div>
+            <div data-include="tpl-e2-asked"></div>
+            <div data-include="tpl-e2-resolved"></div>
+            <div data-include="tpl-e2-decisions-saved"></div>
+            <div data-include="tpl-e2-files"></div>
+            <div data-include="tpl-e2-full"></div>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-idle"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 9. Question asked in plain text ============================== -->
+  <section class="pv-state" data-state="question-in-text" data-label="9. Needs you: a question inside the reply" data-waiting="true" data-focus="composer" hidden>
+    <div class="chat">
+      <div class="chat__transcript">
+        <div class="exchange">
+          <div data-include="tpl-user-e3"></div>
+          <article class="response" aria-label="Claude’s reply">
+            <div data-include="tpl-e3-head"></div>
+            <section class="callout callout--attention question" aria-label="Claude’s question" data-scroll-anchor>
+              <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude is asking you</h3>
+              <div class="callout__body markdown">
+                <p>Want me to add a test for signing in with an old Mongo ID through <code>legacyId</code>? Nothing covers that path yet.</p>
+              </div>
+              <p class="callout__note">Claude asked this in its reply rather than as a formal question, so it’s pulled out here in full.</p>
+            </section>
+            <div data-include="tpl-decisions-empty"></div>
+            <div data-include="tpl-e3-files"></div>
+            <details class="disclosure full-reply">
+              <div data-include="tpl-e3q-full-inner"></div>
+            </details>
+          </article>
+        </div>
+      </div>
+      <div data-include="tpl-composer-answering"></div>
+    </div>
+  </section>
+
+  <!-- ============================== 10. No decisions ============================== -->
+  <section class="pv-state" data-state="no-decisions" data-label="10. Reply with no decisions (empty)" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
@@ -256,19 +309,19 @@
     </div>
   </section>
 
-  <!-- ============================== 9. Stopped ============================== -->
-  <section class="pv-state" data-state="stopped" data-label="9 · Stopped by you" hidden>
+  <!-- ============================== 11. Stopped ============================== -->
+  <section class="pv-state" data-state="stopped" data-label="11. Stopped by you" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e1"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <header class="response__header">
               <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-              <span class="sep" aria-hidden="true">·</span><span>Stopped by you after 0:41</span>
+              <span>Stopped by you after 0:41</span>
             </header>
             <section class="section decisions">
-              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">1</span></h3>
+              <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>1 decision</h3>
               <ol class="decision-list">
                 <li class="decision">
                   <span class="decision__seq">#12</span>
@@ -276,13 +329,13 @@
                     <p class="decision__text">Sign users in with magic links only; no passwords.</p>
                     <p class="decision__meta">
                       <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
-                      <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
-                      <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+                      <span class="grades">Code span 3/5</span>
+                      <span class="grades">Reversibility 3/5</span>
                     </p>
                     <details class="disclosure">
                       <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
                       <div class="decision__details">
-                        <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
+                        <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
                         <div data-include="tpl-grade-scale-3-3"></div>
                         <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
                       </div>
@@ -293,7 +346,7 @@
               <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">5b7e019</button> on main</p>
             </section>
             <section class="section files">
-              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">1</span>
+              <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>1 file changed
                 <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>52</span></span></span>
               </h3>
               <ul class="file-list">
@@ -303,7 +356,7 @@
             <details class="disclosure full-reply">
               <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
               <div class="full-reply__body">
-                <div class="markdown"><p>I'll start with the token model and the route that sends the email, then the verify route and tests.</p></div>
+                <div class="markdown"><p>I’ll start with the token model and the route that sends the email, then the verify route and tests.</p></div>
                 <p class="step"><span class="icon" data-icon="search"></span><span>Searched for <code>sendEmail</code></span></p>
                 <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/auth/magicLink.ts</code></span></p>
                 <p class="step"><span class="icon" data-icon="stop"></span><span>Stopped by Priya</span></p>
@@ -317,16 +370,16 @@
     </div>
   </section>
 
-  <!-- ============================== 10. Turn failed ============================== -->
-  <section class="pv-state" data-state="turn-failed" data-label="10 · Error: Claude Code stopped mid-reply" hidden>
+  <!-- ============================== 12. Turn failed ============================== -->
+  <section class="pv-state" data-state="turn-failed" data-label="12. Error: Claude Code stopped mid-reply" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e3"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <header class="response__header">
               <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-              <span class="sep" aria-hidden="true">·</span><span>Stopped by an error after 0:22</span>
+              <span>Stopped by an error after 0:22</span>
             </header>
             <div class="callout callout--neutral" role="status">
               <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Claude Code stopped with an error</p>
@@ -340,7 +393,7 @@
             <details class="disclosure full-reply">
               <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
               <div class="full-reply__body">
-                <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 2 failed</span></p>
+                <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 2 failed</span></p>
                 <div class="markdown"><p>Two tests fail after the switch. Both build users with Mongo-style IDs. Looking at the fixtures now.</p></div>
                 <p class="step"><span class="icon icon--danger" data-icon="error"></span><span>API Error: 500 Internal server error</span></p>
                 <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
@@ -353,20 +406,20 @@
     </div>
   </section>
 
-  <!-- ============================== 11. Extraction failed: API ============================== -->
-  <section class="pv-state" data-state="extraction-failed-api" data-label="11 · Error: extraction failed (API)" hidden>
+  <!-- ============================== 13. Extraction failed: API ============================== -->
+  <section class="pv-state" data-state="extraction-failed-api" data-label="13. Error: extraction failed (API)" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e2"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <div data-include="tpl-e2-head"></div>
             <div data-include="tpl-e2-asked"></div>
             <div data-include="tpl-e2-resolved"></div>
             <section class="section decisions" data-scroll-anchor>
               <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions</h3>
               <div class="callout callout--neutral" role="status">
-                <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Couldn't extract decisions</p>
+                <p class="callout__title"><span class="icon icon--danger" data-icon="error"></span>Couldn’t extract decisions</p>
                 <div class="callout__body">
                   <p>The Anthropic API is overloaded (529). Trying again in 20 seconds.</p>
                   <p class="callout__note">The reply is saved and shown in full below, so nothing is missed.</p>
@@ -385,13 +438,13 @@
     </div>
   </section>
 
-  <!-- ============================== 12. Extraction failed: no model ============================== -->
-  <section class="pv-state" data-state="extraction-failed-no-model" data-label="12 · Error: no model for extraction" hidden>
+  <!-- ============================== 14. Extraction failed: no model ============================== -->
+  <section class="pv-state" data-state="extraction-failed-no-model" data-label="14. Error: no model for extraction" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
           <div data-include="tpl-user-e3"></div>
-          <article class="response" aria-label="Claude's reply">
+          <article class="response" aria-label="Claude’s reply">
             <div data-include="tpl-e3-head"></div>
             <section class="section decisions" data-scroll-anchor>
               <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions</h3>
@@ -418,13 +471,13 @@
     </div>
   </section>
 
-  <!-- ============================== 13. Claude Code not installed ============================== -->
-  <section class="pv-state" data-state="not-installed" data-label="13 · Error: Claude Code not installed" hidden>
+  <!-- ============================== 15. Claude Code not installed ============================== -->
+  <section class="pv-state" data-state="not-installed" data-label="15. Error: Claude Code not installed" hidden>
     <div class="chat">
       <div class="chat__transcript chat__transcript--center">
         <div class="empty-state empty-state--danger" role="alert">
           <span class="icon icon--lg empty-state__icon" data-icon="error"></span>
-          <h2 class="empty-state__title">Claude Code isn't installed</h2>
+          <h2 class="empty-state__title">Claude Code isn’t installed</h2>
           <p class="empty-state__body">This panel runs Claude Code on your machine, so it needs the <code>claude</code> command. Install it, then check again.</p>
           <figure class="codeblock">
             <figcaption class="codeblock__header"><span>Terminal</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy command" title="Copy command"><span class="icon" data-icon="copy"></span></button></figcaption>
@@ -440,8 +493,8 @@
     </div>
   </section>
 
-  <!-- ============================== 14. Not signed in ============================== -->
-  <section class="pv-state" data-state="signed-out" data-label="14 · Error: Claude Code not signed in" hidden>
+  <!-- ============================== 16. Not signed in ============================== -->
+  <section class="pv-state" data-state="signed-out" data-label="16. Error: Claude Code not signed in" hidden>
     <div class="chat">
       <div class="chat__transcript chat__transcript--center">
         <div class="empty-state" role="alert">
@@ -459,8 +512,8 @@
     </div>
   </section>
 
-  <!-- ============================== 15. Conversation ============================== -->
-  <section class="pv-state" data-state="conversation" data-label="15 · A conversation (3 exchanges)" hidden>
+  <!-- ============================== 17. Conversation ============================== -->
+  <section class="pv-state" data-state="conversation" data-label="17. A conversation (3 exchanges)" hidden>
     <div class="chat">
       <div class="chat__transcript">
         <div class="exchange">
@@ -480,6 +533,7 @@
     </div>
   </section>
 
+
 </div>
 </div>
 
@@ -492,14 +546,14 @@
 <template id="tpl-user-e1">
   <div class="user-msg">
     <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
-    <p class="user-msg__text">Let's build signup with magic links only, no passwords. Links should expire quickly and work once.</p>
+    <p class="user-msg__text">Let’s build signup with magic links only, no passwords. Links should expire quickly and work once.</p>
   </div>
 </template>
 
 <template id="tpl-user-e2">
   <div class="user-msg">
     <div class="user-msg__head"><span class="author author--strong"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span></div>
-    <p class="user-msg__text">Sam wants users in Postgres so we're on one database with billing. Switch the user store over from Mongo.</p>
+    <p class="user-msg__text">Sam wants users in Postgres so we’re on one database with billing. Switch the user store over from Mongo.</p>
   </div>
 </template>
 
@@ -514,21 +568,21 @@
 <template id="tpl-grade-scale-3-3">
   <div class="detail"><span class="detail__label">Grades</span>
     <ul class="grade-scale">
-      <li>Code span 3/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-      <li>Reversibility 3/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+      <li>Code span 3/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+      <li>Reversibility 3/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
     </ul>
   </div>
 </template>
 
 <!-- ======================= Exchange 1: magic links ======================= -->
 <template id="tpl-e1-response">
-  <article class="response" aria-label="Claude's reply">
+  <article class="response" aria-label="Claude’s reply">
     <header class="response__header">
       <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-      <span class="sep" aria-hidden="true">·</span><span>Done in 2m 05s</span>
+      <span>Done in 2m 05s</span>
     </header>
     <section class="section decisions">
-      <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">3</span></h3>
+      <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>3 decisions</h3>
       <ol class="decision-list">
         <li class="decision">
           <span class="decision__seq">#12</span>
@@ -536,13 +590,13 @@
             <p class="decision__text">Sign users in with magic links only; no passwords.</p>
             <p class="decision__meta">
               <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+              <span class="grades">Code span 3/5</span>
+              <span class="grades">Reversibility 3/5</span>
             </p>
             <details class="disclosure">
               <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
               <div class="decision__details">
-                <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
+                <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“magic links only, no passwords”</blockquote></div>
                 <div data-include="tpl-grade-scale-3-3"></div>
                 <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
               </div>
@@ -555,18 +609,18 @@
             <p class="decision__text">Magic links expire after 15 minutes and work once.</p>
             <p class="decision__meta">
               <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 1/5</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 5/5</span>
+              <span class="grades">Code span 1/5</span>
+              <span class="grades">Reversibility 5/5</span>
             </p>
             <details class="disclosure">
               <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
               <div class="decision__details">
                 <div class="detail"><span class="detail__label">Why</span><p>Short enough that a forwarded link goes stale quickly, long enough for slow email.</p></div>
-                <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“Links expire after 15 minutes and are marked used on first click”</blockquote></div>
+                <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“Links expire after 15 minutes and are marked used on first click”</blockquote></div>
                 <div class="detail"><span class="detail__label">Grades</span>
                   <ul class="grade-scale">
-                    <li>Code span 1/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-                    <li>Reversibility 5/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                    <li>Code span 1/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                    <li>Reversibility 5/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
                   </ul>
                 </div>
                 <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
@@ -580,18 +634,18 @@
             <p class="decision__text">Store only a SHA-256 hash of each link token.</p>
             <p class="decision__meta">
               <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 1/5</span>
-              <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+              <span class="grades">Code span 1/5</span>
+              <span class="grades">Reversibility 4/5</span>
             </p>
             <details class="disclosure">
               <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
               <div class="decision__details">
                 <div class="detail"><span class="detail__label">Why</span><p>If the database leaks, no usable sign-in links leak with it.</p></div>
-                <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“only a SHA-256 hash of the token is stored”</blockquote></div>
+                <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“only a SHA-256 hash of the token is stored”</blockquote></div>
                 <div class="detail"><span class="detail__label">Grades</span>
                   <ul class="grade-scale">
-                    <li>Code span 1/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-                    <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                    <li>Code span 1/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                    <li>Reversibility 4/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
                   </ul>
                 </div>
                 <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
@@ -603,7 +657,7 @@
       <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">8c41d0e</button> on main</p>
     </section>
     <section class="section files">
-      <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">4</span>
+      <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>4 files changed
         <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>200</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>6</span></span></span>
       </h3>
       <ul class="file-list">
@@ -616,7 +670,7 @@
     <details class="disclosure full-reply">
       <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
       <div class="full-reply__body">
-        <div class="markdown"><p>I'll add passwordless signup: one route that emails a link, one that verifies it.</p></div>
+        <div class="markdown"><p>I’ll add passwordless signup: one route that emails a link, one that verifies it.</p></div>
         <p class="step"><span class="icon" data-icon="search"></span><span>Searched for <code>sendEmail</code></span></p>
         <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/auth/magicLink.ts</code></span></p>
         <figure class="codeblock">
@@ -629,7 +683,7 @@ export function hashToken(token: string): string {
         </figure>
         <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>src/auth/routes.ts</code></span></p>
         <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/email/templates/magicLink.html</code>, <code>test/auth/magicLink.test.ts</code></span></p>
-        <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 38 passed</span></p>
+        <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 38 passed</span></p>
         <div class="markdown">
           <p>Magic-link signup is in:</p>
           <ul>
@@ -648,17 +702,17 @@ export function hashToken(token: string): string {
 <template id="tpl-e2-head">
   <header class="response__header">
     <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-    <span class="sep" aria-hidden="true">·</span><span>Done in 3m 41s</span>
+    <span>Done in 3m 41s</span>
   </header>
 </template>
 
-<!-- A question stays in full after it's answered; it just stops shouting. -->
+<!-- A question stays in full after it’s answered; it just stops shouting. -->
 <template id="tpl-e2-asked">
-  <section class="callout callout--neutral question" aria-label="Claude's question, answered">
+  <section class="callout callout--neutral question" aria-label="Claude’s question, answered">
     <h3 class="callout__title"><span class="icon icon--attention" data-icon="question"></span>Claude asked</h3>
     <div class="callout__body markdown">
       <p>While moving users to Postgres I found <strong>14 accounts</strong> that exist in both databases with different email addresses. They look like the March import Sam ran for billing.</p>
-      <p>Magic links go to the account's email, so picking the wrong one would lock those people out.</p>
+      <p>Magic links go to the account’s email, so picking the wrong one would lock those people out.</p>
       <p>Which email should win when I merge them?</p>
     </div>
     <p class="question__answer"><span class="icon icon--success" data-icon="check"></span><span><strong>Priya answered:</strong> Keep both. Either address signs in; flag the 14 for review.</span></p>
@@ -666,12 +720,12 @@ export function hashToken(token: string): string {
 </template>
 
 <template id="tpl-e2-resolved">
-  <p class="resolved"><span class="icon icon--success" data-icon="check"></span><span>Allowed Bash: <code>npm install prisma @prisma/client</code> <span class="sep" aria-hidden="true">·</span> by Priya, this time only</span></p>
+  <p class="resolved"><span class="icon icon--success" data-icon="check"></span><span>Allowed Bash: <code>npm install prisma @prisma/client</code><span class="resolved__by">By Priya, this time only</span></span></p>
 </template>
 
 <template id="tpl-e2-decisions">
   <section class="section decisions">
-    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">4</span></h3>
+    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>4 decisions</h3>
     <ol class="decision-list">
       <li class="decision">
         <span class="decision__seq">#15</span>
@@ -679,19 +733,19 @@ export function hashToken(token: string): string {
           <p class="decision__text">Store users in Postgres instead of MongoDB.</p>
           <p class="decision__meta">
             <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 4/5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 2/5</span>
+            <span class="grades">Code span 4/5</span>
+            <span class="grades">Reversibility 2/5</span>
           </p>
           <p class="decision__meta"><span class="icon" data-icon="replace"></span><span>Replaces #9: Store users in MongoDB. (Sam)</span></p>
           <details class="disclosure">
             <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
             <div class="decision__details">
               <div class="detail"><span class="detail__label">Why</span><p>Billing already runs on Postgres, so there is one database to back up and operate.</p></div>
-              <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“Sam wants users in Postgres so we're on one database with billing”</blockquote></div>
+              <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“Sam wants users in Postgres so we’re on one database with billing”</blockquote></div>
               <div class="detail"><span class="detail__label">Grades</span>
                 <ul class="grade-scale">
-                  <li>Code span 4/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-                  <li>Reversibility 2/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                  <li>Code span 4/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 2/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
                 </ul>
               </div>
               <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
@@ -705,14 +759,14 @@ export function hashToken(token: string): string {
           <p class="decision__text">Use Prisma as the Postgres client.</p>
           <p class="decision__meta">
             <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 3/5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 3/5</span>
+            <span class="grades">Code span 3/5</span>
+            <span class="grades">Reversibility 3/5</span>
           </p>
           <details class="disclosure">
             <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
             <div class="decision__details">
               <div class="detail"><span class="detail__label">Why</span><p>Typed queries and migrations in one tool; billing uses no ORM, so there is nothing to stay consistent with.</p></div>
-              <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“billing doesn't use an ORM, so there's nothing to stay consistent with”</blockquote></div>
+              <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“billing doesn’t use an ORM, so there’s nothing to stay consistent with”</blockquote></div>
               <div data-include="tpl-grade-scale-3-3"></div>
               <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
             </div>
@@ -722,21 +776,21 @@ export function hashToken(token: string): string {
       <li class="decision">
         <span class="decision__seq">#17</span>
         <div class="decision__body">
-          <p class="decision__text">Keep each user's old Mongo ID in a legacy_id column.</p>
+          <p class="decision__text">Keep each user’s old Mongo ID in a legacy_id column.</p>
           <p class="decision__meta">
             <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 2/5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+            <span class="grades">Code span 2/5</span>
+            <span class="grades">Reversibility 4/5</span>
           </p>
           <details class="disclosure">
             <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
             <div class="decision__details">
               <div class="detail"><span class="detail__label">Why</span><p>Existing magic links and logs still reference Mongo IDs.</p></div>
-              <div class="detail"><span class="detail__label">Quote · claude-opus-5-5</span><blockquote class="quote">“so existing magic links and logs still resolve”</blockquote></div>
+              <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“so existing magic links and logs still resolve”</blockquote></div>
               <div class="detail"><span class="detail__label">Grades</span>
                 <ul class="grade-scale">
-                  <li>Code span 2/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
                 </ul>
               </div>
               <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
@@ -750,17 +804,17 @@ export function hashToken(token: string): string {
           <p class="decision__text">Keep both emails on the 14 duplicate accounts and flag them for review.</p>
           <p class="decision__meta">
             <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Code span 2/5</span>
-            <span class="sep" aria-hidden="true">·</span><span class="grades">Reversibility 4/5</span>
+            <span class="grades">Code span 2/5</span>
+            <span class="grades">Reversibility 4/5</span>
           </p>
           <details class="disclosure">
             <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
             <div class="decision__details">
-              <div class="detail"><span class="detail__label">Quote · Priya</span><blockquote class="quote">“Keep both”</blockquote></div>
+              <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“Keep both”</blockquote></div>
               <div class="detail"><span class="detail__label">Grades</span>
                 <ul class="grade-scale">
-                  <li>Code span 2/5<span class="meta">1 = touches a single line or function · 5 = touches the whole codebase</span></li>
-                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible · 5 = trivial to undo</span></li>
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
                 </ul>
               </div>
               <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
@@ -773,9 +827,133 @@ export function hashToken(token: string): string {
   </section>
 </template>
 
+<template id="tpl-e2-decisions-saved">
+  <section class="section decisions">
+    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>5 decisions</h3>
+    <ol class="decision-list">
+      <li class="decision">
+        <span class="decision__seq">#15</span>
+        <div class="decision__body">
+          <p class="decision__text">Store users in Postgres instead of MongoDB.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+            <span class="grades">Code span 4/5</span>
+            <span class="grades">Reversibility 2/5</span>
+          </p>
+          <p class="decision__meta"><span class="icon" data-icon="replace"></span><span>Replaces #9: Store users in MongoDB. (Sam)</span></p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Billing already runs on Postgres, so there is one database to back up and operate.</p></div>
+              <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“Sam wants users in Postgres so we’re on one database with billing”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 4/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 2/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#16</span>
+        <div class="decision__body">
+          <p class="decision__text">Use Prisma as the Postgres client.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            <span class="grades">Code span 3/5</span>
+            <span class="grades">Reversibility 3/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Typed queries and migrations in one tool; billing uses no ORM, so there is nothing to stay consistent with.</p></div>
+              <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“billing doesn’t use an ORM, so there’s nothing to stay consistent with”</blockquote></div>
+              <div data-include="tpl-grade-scale-3-3"></div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#17</span>
+        <div class="decision__body">
+          <p class="decision__text">Keep each user’s old Mongo ID in a legacy_id column.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            <span class="grades">Code span 2/5</span>
+            <span class="grades">Reversibility 4/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Why and source</span><span class="when-open">Hide why and source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Why</span><p>Existing magic links and logs still reference Mongo IDs.</p></div>
+              <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“so existing magic links and logs still resolve”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision">
+        <span class="decision__seq">#18</span>
+        <div class="decision__body">
+          <p class="decision__text">Keep both emails on the 14 duplicate accounts and flag them for review.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="person"></span><span class="visually-hidden">Person: </span>Priya</span>
+            <span class="grades">Code span 2/5</span>
+            <span class="grades">Reversibility 4/5</span>
+          </p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Quote from Priya</span><blockquote class="quote">“Keep both”</blockquote></div>
+              <div class="detail"><span class="detail__label">Grades</span>
+                <ul class="grade-scale">
+                  <li>Code span 2/5<span class="meta">1 = touches a single line or function; 5 = touches the whole codebase</span></li>
+                  <li>Reversibility 4/5<span class="meta">1 = practically irreversible; 5 = trivial to undo</span></li>
+                </ul>
+              </div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+      <li class="decision" data-scroll-anchor="center">
+        <span class="decision__seq">#19</span>
+        <div class="decision__body">
+          <p class="decision__text">Keep the Mongo service in docker-compose.yml, commented out, until existing users are copied over.</p>
+          <p class="decision__meta">
+            <span class="author"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
+            <span class="grades">Code span 1/5</span>
+            <span class="grades">Reversibility 5/5</span>
+          </p>
+          <p class="decision__saved">Saved by Priya from the full reply</p>
+          <details class="disclosure">
+            <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Source</span><span class="when-open">Hide source</span></summary>
+            <div class="decision__details">
+              <div class="detail"><span class="detail__label">Quote from claude-opus-5-5</span><blockquote class="quote">“I left the Mongo service in docker-compose.yml, commented out, so you can run a one-off copy of existing users before removing it.”</blockquote></div>
+              <div><button type="button" class="btn btn--text" title="Opens the record with its full source message"><span class="icon" data-icon="link-external"></span>Open source</button></div>
+            </div>
+          </details>
+        </div>
+      </li>
+    </ol>
+    <p class="node-ref"><span class="icon" data-icon="git-commit"></span>Saved as node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">3f9a2c1</button> on main</p>
+    <p class="node-ref node-ref--sub">Your addition: node <button type="button" class="btn btn--text mono" title="Show this node in the ledger">7d20b4e</button> on main</p>
+  </section>
+</template>
+
 <template id="tpl-e2-files">
   <section class="section files">
-    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">6</span>
+    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>6 files changed
       <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>161</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>99</span></span></span>
     </h3>
     <ul class="file-list">
@@ -799,7 +977,7 @@ export function hashToken(token: string): string {
   <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
   <div class="full-reply__body">
     <div class="markdown">
-      <p>I'll move the user store from MongoDB to Postgres, on the same Postgres instance billing already uses.</p>
+      <p>I’ll move the user store from MongoDB to Postgres, on the same Postgres instance billing already uses.</p>
       <h4>Plan</h4>
       <ol>
         <li>Add Prisma with a <code>User</code> model that mirrors the current Mongo document.</li>
@@ -809,7 +987,7 @@ export function hashToken(token: string): string {
       </ol>
     </div>
     <p class="step"><span class="icon" data-icon="file"></span><span>Read <code>src/users/userRepository.ts</code></span></p>
-    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm install prisma @prisma/client</code> · allowed by Priya</span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm install prisma @prisma/client</code>, allowed by Priya</span></p>
     <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>prisma/schema.prisma</code></span></p>
     <figure class="codeblock">
       <figcaption class="codeblock__header"><span>prisma</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></figcaption>
@@ -823,13 +1001,13 @@ export function hashToken(token: string): string {
     </figure>
     <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>src/db/client.ts</code>, <code>src/users/userRepository.ts</code></span></p>
     <div class="markdown"><p>14 accounts exist in both databases with different emails. Asking before I merge them.</p></div>
-    <p class="step"><span class="icon" data-icon="question"></span><span>Asked which email should win · Priya answered “Keep both”</span></p>
+    <p class="step"><span class="icon" data-icon="question"></span><span>Asked which email should win; Priya answered “Keep both”</span></p>
     <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/users/mergeDuplicates.ts</code></span></p>
     <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>docker-compose.yml</code>, <code>package.json</code></span></p>
-    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 41 passed</span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 41 passed</span></p>
     <div class="markdown">
       <p>Done. Users now live in Postgres via Prisma.</p>
-      <p>I chose Prisma over plain <code>pg</code> because billing doesn't use an ORM, so there's nothing to stay consistent with, and Prisma gives typed queries and migrations in one tool. If you'd rather keep it lighter, swapping to <code>pg</code> only touches <code>client.ts</code> and the repository.</p>
+      <p>I chose Prisma over plain <code>pg</code> because billing doesn’t use an ORM, so there’s nothing to stay consistent with, and Prisma gives typed queries and migrations in one tool. If you’d rather keep it lighter, swapping to <code>pg</code> only touches <code>client.ts</code> and the repository.</p>
       <p>The 14 duplicate accounts keep both addresses: the signup email in <code>email</code>, the billing one in <code>altEmail</code>. Either can request a magic link, and <code>mergeDuplicates.ts</code> writes their IDs to <code>needs-review.csv</code>.</p>
       <p>I left the Mongo service in <code>docker-compose.yml</code>, commented out, so you can run a one-off copy of existing users before removing it.</p>
     </div>
@@ -837,8 +1015,55 @@ export function hashToken(token: string): string {
   </div>
 </template>
 
+<template id="tpl-e2-full-inner-selected">
+  <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+  <div class="full-reply__body">
+    <div class="markdown">
+      <p>I’ll move the user store from MongoDB to Postgres, on the same Postgres instance billing already uses.</p>
+      <h4>Plan</h4>
+      <ol>
+        <li>Add Prisma with a <code>User</code> model that mirrors the current Mongo document.</li>
+        <li>Point <code>src/db/client.ts</code> at Postgres.</li>
+        <li>Rewrite <code>userRepository.ts</code> against Prisma.</li>
+        <li>Keep the old Mongo <code>_id</code> as <code>legacyId</code> so existing magic links and logs still resolve.</li>
+      </ol>
+    </div>
+    <p class="step"><span class="icon" data-icon="file"></span><span>Read <code>src/users/userRepository.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm install prisma @prisma/client</code>, allowed by Priya</span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>prisma/schema.prisma</code></span></p>
+    <figure class="codeblock">
+      <figcaption class="codeblock__header"><span>prisma</span><button type="button" class="btn btn--icon" data-copy aria-label="Copy code" title="Copy code"><span class="icon" data-icon="copy"></span></button></figcaption>
+      <pre><code>model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  altEmail  String?  @map("alt_email")
+  legacyId  String?  @unique @map("legacy_id")
+  createdAt DateTime @default(now()) @map("created_at")
+}</code></pre>
+    </figure>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>src/db/client.ts</code>, <code>src/users/userRepository.ts</code></span></p>
+    <div class="markdown"><p>14 accounts exist in both databases with different emails. Asking before I merge them.</p></div>
+    <p class="step"><span class="icon" data-icon="question"></span><span>Asked which email should win; Priya answered “Keep both”</span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Created <code>src/users/mergeDuplicates.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>docker-compose.yml</code>, <code>package.json</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 41 passed</span></p>
+    <div class="markdown">
+      <p>Done. Users now live in Postgres via Prisma.</p>
+      <p>I chose Prisma over plain <code>pg</code> because billing doesn’t use an ORM, so there’s nothing to stay consistent with, and Prisma gives typed queries and migrations in one tool. If you’d rather keep it lighter, swapping to <code>pg</code> only touches <code>client.ts</code> and the repository.</p>
+      <p>The 14 duplicate accounts keep both addresses: the signup email in <code>email</code>, the billing one in <code>altEmail</code>. Either can request a magic link, and <code>mergeDuplicates.ts</code> writes their IDs to <code>needs-review.csv</code>.</p>
+      <p><mark class="selection">I left the Mongo service in <code>docker-compose.yml</code>, commented out, so you can run a one-off copy of existing users before removing it.</mark></p>
+    </div>
+    <div class="save-selection" data-scroll-anchor="center" role="group" aria-label="Selected text">
+      <button class="btn btn--secondary" type="button" data-goto="saved-decision"><span class="icon" data-icon="add"></span>Save as decision</button>
+      <span class="meta">The engine missed this one. Saving records it, credited to claude-opus-5-5.</span>
+    </div>
+    
+    <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+  </div>
+</template>
+
 <template id="tpl-e2-response">
-  <article class="response" aria-label="Claude's reply">
+  <article class="response" aria-label="Claude’s reply">
     <div data-include="tpl-e2-head"></div>
     <div data-include="tpl-e2-asked"></div>
     <div data-include="tpl-e2-resolved"></div>
@@ -852,23 +1077,22 @@ export function hashToken(token: string): string {
 <template id="tpl-e3-head">
   <header class="response__header">
     <span class="author author--strong"><span class="icon" data-icon="hubot"></span><span class="visually-hidden">AI: </span>claude-opus-5-5</span>
-    <span class="sep" aria-hidden="true">·</span><span>Done in 1m 18s</span>
+    <span>Done in 1m 18s</span>
   </header>
 </template>
 
 <template id="tpl-decisions-empty">
   <section class="section decisions">
-    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>Decisions <span class="badge">0</span></h3>
+    <h3 class="section__header"><span class="icon" data-icon="git-commit"></span>No decisions</h3>
     <div class="decisions__empty">
-      <p>No decisions in this reply.</p>
-      <p class="meta">Extraction can miss some. Everything Claude said is in the full reply.</p>
+      <p class="meta">None were found in this reply. Extraction can miss some, so everything Claude said is in the full reply.</p>
     </div>
   </section>
 </template>
 
 <template id="tpl-e3-files">
   <section class="section files">
-    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>Files changed <span class="badge">2</span>
+    <h3 class="section__header"><span class="icon" data-icon="file-diff"></span>2 files changed
       <span class="section__aside"><span class="diffstat"><span class="diffstat__added"><span class="diffstat__sign">+</span>16</span><span class="diffstat__removed"><span class="diffstat__sign">−</span>19</span></span></span>
     </h3>
     <ul class="file-list">
@@ -881,17 +1105,29 @@ export function hashToken(token: string): string {
 <template id="tpl-e3-full-inner">
   <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
   <div class="full-reply__body">
-    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 2 failed</span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 2 failed</span></p>
     <div class="markdown"><p>Two tests failed after the switch. Both built users with Mongo-style IDs, which the new <code>User</code> model rejects because IDs are now UUIDs.</p></div>
     <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>test/fixtures/users.ts</code>, <code>test/auth/magicLink.test.ts</code></span></p>
-    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code> · 43 passed</span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 43 passed</span></p>
     <div class="markdown"><p>Fixed. The fixtures now create UUIDs, and the one assertion that compared IDs as plain strings uses the new format. All 43 tests pass.</p></div>
     <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
   </div>
 </template>
 
+<template id="tpl-e3q-full-inner">
+  <summary><span class="icon disclosure__chevron" data-icon="chevron"></span><span class="when-closed">Show full reply</span><span class="when-open">Hide full reply</span><span class="meta">as Claude wrote it</span></summary>
+  <div class="full-reply__body">
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 2 failed</span></p>
+    <div class="markdown"><p>Two tests failed after the switch. Both built users with Mongo-style IDs, which the new <code>User</code> model rejects because IDs are now UUIDs.</p></div>
+    <p class="step"><span class="icon" data-icon="pencil"></span><span>Edited <code>test/fixtures/users.ts</code>, <code>test/auth/magicLink.test.ts</code></span></p>
+    <p class="step"><span class="icon" data-icon="terminal"></span><span>Ran <code>npm test</code>, 43 passed</span></p>
+    <div class="markdown"><p>Fixed. The fixtures now create UUIDs, and the one assertion that compared IDs as plain strings uses the new format. All 43 tests pass.</p><p>Want me to add a test for signing in with an old Mongo ID through <code>legacyId</code>? Nothing covers that path yet.</p></div>
+    <div class="full-reply__footer"><button type="button" class="btn btn--text" data-close-details><span class="icon" data-icon="chevron-up"></span>Hide full reply</button></div>
+  </div>
+</template>
+
 <template id="tpl-e3-response">
-  <article class="response" aria-label="Claude's reply">
+  <article class="response" aria-label="Claude’s reply">
     <div data-include="tpl-e3-head"></div>
     <div data-include="tpl-decisions-empty"></div>
     <div data-include="tpl-e3-files"></div>
@@ -908,7 +1144,7 @@ export function hashToken(token: string): string {
       <div class="composer__box">
         <textarea class="textarea textarea--bare" rows="2" aria-label="Message Claude" placeholder="Ask Claude to change something…"></textarea>
         <div class="composer__bar">
-          <span class="composer__hint">Enter to send · Shift+Enter for a new line</span>
+          <span class="composer__hint">Enter sends, Shift+Enter adds a line</span>
           <button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send</button>
         </div>
       </div>
@@ -946,13 +1182,13 @@ export function hashToken(token: string): string {
 </template>
 
 <template id="tpl-composer-answering">
-  <form class="composer composer--answering" data-goto="working" aria-label="Answer Claude's question" data-escape="stopped">
+  <form class="composer composer--answering" data-goto="working" aria-label="Answer Claude’s question" data-escape="stopped">
     <div class="composer__inner">
-      <p class="composer__label"><span class="icon icon--attention" data-icon="question"></span>Answering Claude's question</p>
+      <p class="composer__label"><span class="icon icon--attention" data-icon="question"></span>Answering Claude’s question</p>
       <div class="composer__box">
         <textarea class="textarea textarea--bare" rows="2" aria-label="Your answer to Claude" placeholder="Type your answer…"></textarea>
         <div class="composer__bar">
-          <span class="composer__hint">Enter to send · Esc to stop</span>
+          <span class="composer__hint">Enter sends, Esc stops</span>
           <button type="submit" class="btn btn--primary"><span class="icon" data-icon="send"></span>Send answer</button>
         </div>
       </div>

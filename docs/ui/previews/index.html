@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en" class="theme-dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Decision Ledger chat panel: design previews</title>
+  <title>Chat panel previews</title>
+  <meta name="description" content="Clickable design previews of the Decision Ledger chat panel: 17 states, dark and light, at panel and phone widths.">
   <link rel="stylesheet" href="../tokens.css">
   <link rel="stylesheet" href="vscode-theme.css">
   <link rel="stylesheet" href="preview.css">
@@ -24,60 +25,62 @@
   <div class="pv-page__inner">
 
     <header class="pv-group">
-      <h1>Decision Ledger: chat panel</h1>
-      <p class="meta">Design previews for the extension's own chat panel. Claude Code runs underneath as usual; this is what the panel shows. Open any state, then use the bar at the top to step through the others, switch theme, and try the panel at 360px, 480px or full width.</p>
+      <h1>Decision Ledger chat panel</h1>
+      <p class="meta">Claude Code runs underneath as usual; this is what the panel shows. While Claude works, its words stream in as written. When it finishes, the reply becomes the important information: questions, permissions, decisions and files changed, with the full reply one click away. Open any state, then step through the rest from the bar at the top.</p>
       <p class="meta">Specs: <code>docs/ui/chat-panel.md</code> (the screen) and <code>docs/ui/design-system.md</code> (tokens and components).</p>
     </header>
 
     <section class="pv-group" aria-labelledby="g-start">
-      <h2 id="g-start" class="section__header">Start</h2>
+      <h2 id="g-start">Start</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="chat-panel.html#empty"><span class="icon" data-icon="ledger"></span><span class="pv-links__text"><span>1 · Empty: new conversation</span><span class="meta">What the panel does, in four lines. The composer is focused.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#empty"><span class="icon" data-icon="ledger"></span><span class="pv-links__text"><span>1. Empty: new conversation</span><span class="meta">What the panel does, in four lines. The message box is focused.</span></span></a></li>
       </ul>
     </section>
 
     <section class="pv-group" aria-labelledby="g-turn">
-      <h2 id="g-turn" class="section__header">A turn, step by step (the Mongo to Postgres exchange)</h2>
+      <h2 id="g-turn">One turn, step by step: moving users from Mongo to Postgres</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="chat-panel.html#permission"><span class="icon icon--warning" data-icon="shield"></span><span class="pv-links__text"><span>2 · Needs you: permission prompt</span><span class="meta">"Allow Bash?" with the exact command, Allow / Allow for this session / Deny.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#working"><span class="icon" data-icon="loading"></span><span class="pv-links__text"><span>3 · Claude working</span><span class="meta">One live status line (watch it change), elapsed time, Stop in the composer, files changed so far.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#question"><span class="icon icon--attention" data-icon="question"></span><span class="pv-links__text"><span>4 · Needs you: Claude asks a question</span><span class="meta">The question in full, suggested answers, composer focused to type your own.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#extracting"><span class="icon" data-icon="git-commit"></span><span class="pv-links__text"><span>5 · Reply done, decisions still extracting</span><span class="meta">Decisions section loading; files and full reply already there.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#processed"><span class="icon icon--success" data-icon="check"></span><span class="pv-links__text"><span>6 · Processed reply (success)</span><span class="meta">Answered question, permission line, 4 decisions, 6 files, collapsed full reply.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#expanded"><span class="icon" data-icon="text"></span><span class="pv-links__text"><span>7 · Full reply expanded</span><span class="meta">The unprocessed reply inline, with steps and code. Note the decision the engine missed in its last paragraph.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#permission"><span class="icon icon--warning" data-icon="shield"></span><span class="pv-links__text"><span>2. Needs you: permission prompt</span><span class="meta">“Allow Bash?” with the exact command. The session option names its scope on the button.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#working"><span class="icon" data-icon="loading"></span><span class="pv-links__text"><span>3. Claude working (live status and stream)</span><span class="meta">A live status line, and Claude’s words streaming in as it writes them.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#question"><span class="icon icon--attention" data-icon="question"></span><span class="pv-links__text"><span>4. Needs you: Claude asks a question</span><span class="meta">The question in full, suggested answers, and the message box ready for your own.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#extracting"><span class="icon" data-icon="git-commit"></span><span class="pv-links__text"><span>5. Reply done, decisions extracting</span><span class="meta">The decisions load while the files and the full reply are already there.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#processed"><span class="icon icon--success" data-icon="check"></span><span class="pv-links__text"><span>6. Processed reply (success)</span><span class="meta">The default view: the answered question, the permission, 4 decisions, 6 files.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#expanded"><span class="icon" data-icon="text"></span><span class="pv-links__text"><span>7. Full reply expanded, a sentence selected</span><span class="meta">The unprocessed reply inline. Its last paragraph holds a decision the engine missed, selected and ready to save.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#saved-decision"><span class="icon" data-icon="add"></span><span class="pv-links__text"><span>8. The missed decision, saved</span><span class="meta">It joins the list, credited to Claude and marked as saved by you.</span></span></a></li>
       </ul>
     </section>
 
     <section class="pv-group" aria-labelledby="g-other">
-      <h2 id="g-other" class="section__header">Other outcomes</h2>
+      <h2 id="g-other">Other outcomes</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="chat-panel.html#no-decisions"><span class="icon" data-icon="git-commit"></span><span class="pv-links__text"><span>8 · Reply with no decisions (empty)</span><span class="meta">Says so plainly; files and full reply still there.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#stopped"><span class="icon" data-icon="stop"></span><span class="pv-links__text"><span>9 · Stopped by you</span><span class="meta">What was done before stopping is still processed.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#question-in-text"><span class="icon icon--attention" data-icon="question"></span><span class="pv-links__text"><span>9. Needs you: a question inside the reply</span><span class="meta">Claude asked in plain text at the end of its reply; it still gets the full question card.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#no-decisions"><span class="icon" data-icon="git-commit"></span><span class="pv-links__text"><span>10. Reply with no decisions (empty)</span><span class="meta">Says so plainly; the files and the full reply are still there.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#stopped"><span class="icon" data-icon="stop"></span><span class="pv-links__text"><span>11. Stopped by you</span><span class="meta">What was done before stopping is still processed.</span></span></a></li>
       </ul>
     </section>
 
     <section class="pv-group" aria-labelledby="g-errors">
-      <h2 id="g-errors" class="section__header">Errors</h2>
+      <h2 id="g-errors">Errors</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="chat-panel.html#turn-failed"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>10 · Claude Code stopped mid-reply</span><span class="meta">Claude's own error, with Try again.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#extraction-failed-api"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>11 · Extraction failed: API error</span><span class="meta">Full reply opens automatically; automatic retry plus Retry now.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#extraction-failed-no-model"><span class="icon icon--danger" data-icon="key"></span><span class="pv-links__text"><span>12 · Extraction failed: no model</span><span class="meta">Full reply opens automatically; Set up a model.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#not-installed"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>13 · Claude Code not installed</span><span class="meta">Blocks the panel; install command, Check again. A typed draft is kept.</span></span></a></li>
-        <li><a class="row-link" href="chat-panel.html#signed-out"><span class="icon" data-icon="sign-in"></span><span class="pv-links__text"><span>14 · Claude Code not signed in</span><span class="meta">Sign in in a terminal, Check again. A typed draft is kept.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#turn-failed"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>12. Error: Claude Code stopped mid-reply</span><span class="meta">Claude’s own error, with Try again.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#extraction-failed-api"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>13. Error: extraction failed (API)</span><span class="meta">The full reply opens by itself; it retries, and Retry now is there too.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#extraction-failed-no-model"><span class="icon icon--danger" data-icon="key"></span><span class="pv-links__text"><span>14. Error: no model for extraction</span><span class="meta">The full reply opens by itself, with Set up a model.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#not-installed"><span class="icon icon--danger" data-icon="error"></span><span class="pv-links__text"><span>15. Error: Claude Code not installed</span><span class="meta">Blocks the panel with the install command and Check again. A typed draft is kept.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#signed-out"><span class="icon" data-icon="sign-in"></span><span class="pv-links__text"><span>16. Error: Claude Code not signed in</span><span class="meta">Sign in in a terminal, then Check again. A typed draft is kept.</span></span></a></li>
       </ul>
     </section>
 
     <section class="pv-group" aria-labelledby="g-rhythm">
-      <h2 id="g-rhythm" class="section__header">Rhythm</h2>
+      <h2 id="g-rhythm">Rhythm</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="chat-panel.html#conversation"><span class="icon" data-icon="text"></span><span class="pv-links__text"><span>15 · A conversation (3 exchanges)</span><span class="meta">Magic links, then Mongo to Postgres, then fixing tests. Scroll up to judge the pace.</span></span></a></li>
+        <li><a class="row-link" href="chat-panel.html#conversation"><span class="icon" data-icon="text"></span><span class="pv-links__text"><span>17. A conversation (3 exchanges)</span><span class="meta">Magic links, then Mongo to Postgres, then fixing tests. Scroll up to judge the pace.</span></span></a></li>
       </ul>
     </section>
 
     <section class="pv-group" aria-labelledby="g-parts">
-      <h2 id="g-parts" class="section__header">Parts</h2>
+      <h2 id="g-parts">Parts</h2>
       <ul class="pv-links">
-        <li><a class="row-link" href="components.html"><span class="icon" data-icon="ellipsis"></span><span class="pv-links__text"><span>Components</span><span class="meta">Every shared and chat component in all its states (hover, focus, disabled, loading…).</span></span></a></li>
+        <li><a class="row-link" href="components.html"><span class="icon" data-icon="ellipsis"></span><span class="pv-links__text"><span>Components</span><span class="meta">Every shared and chat component in all its states: hover, focus, disabled, loading.</span></span></a></li>
       </ul>
     </section>
 

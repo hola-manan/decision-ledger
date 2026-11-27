@@ -10,6 +10,8 @@
   var WIDTH_KEY = "dl-preview-width";
   var STATUS_CYCLE_MS = 1800;
   var CLOCK_TICK_MS = 1000;
+  var STREAM_WORD_MS = 90;
+  var STREAM_RESTART_MS = 2500;
 
   /* Codicon-like icons, drawn on a 16x16 grid. */
   var DOT = 'fill="currentColor" stroke="none"';
@@ -73,9 +75,7 @@
   }
 
   function applyTheme(theme) {
-    var root = document.documentElement;
-    root.classList.remove("theme-dark", "theme-light");
-    root.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+    document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
     saveSetting(THEME_KEY, theme);
   }
 
@@ -140,6 +140,11 @@
     });
     window.addEventListener("hashchange", function () { showState(states, select); });
     showState(states, select);
+    // Fonts and icons change heights after the first layout; scroll again once everything has loaded.
+    window.addEventListener("load", function () {
+      var current = states.find(function (s) { return !s.hidden; });
+      if (current) scrollTranscript(current);
+    });
   }
 
   function showState(states, select) {
@@ -158,8 +163,11 @@
     var transcript = state.querySelector(".chat__transcript");
     if (!transcript) return;
     var anchor = state.querySelector("[data-scroll-anchor]");
-    if (anchor) anchor.scrollIntoView({ block: "start" });
-    else transcript.scrollTop = transcript.scrollHeight;
+    if (!anchor) { transcript.scrollTop = transcript.scrollHeight; return; }
+    // Offsets from the transcript itself, so only the transcript moves and the panel header stays put.
+    var top = anchor.getBoundingClientRect().top - transcript.getBoundingClientRect().top + transcript.scrollTop;
+    var centred = anchor.dataset.scrollAnchor === "center";
+    transcript.scrollTop = centred ? top - (transcript.clientHeight - anchor.offsetHeight) / 2 : top;
   }
 
   function focusComposerIfAsked(state) {
@@ -220,6 +228,31 @@
     else done();
   }
 
+  /* ---------- live stream demo ----------
+   * The markup holds the whole streamed text, so it shows with scripting off and under
+   * reduced motion. Otherwise each block is replayed word by word, then the replay loops. */
+
+  function replayStream(stream) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var blocks = Array.prototype.slice.call(stream.querySelectorAll("[data-stream-block]"));
+    var texts = blocks.map(function (b) { return b.textContent; });
+    var caret = stream.querySelector(".stream__caret");
+    function run() {
+      blocks.forEach(function (b) { b.textContent = ""; b.hidden = true; });
+      var block = 0, word = 0;
+      var timer = setInterval(function () {
+        if (block >= blocks.length) { clearInterval(timer); setTimeout(run, STREAM_RESTART_MS); return; }
+        var words = texts[block].split(" ");
+        blocks[block].hidden = false;
+        blocks[block].textContent = words.slice(0, word + 1).join(" ");
+        if (caret) blocks[block].appendChild(caret);
+        word += 1;
+        if (word >= words.length) { block += 1; word = 0; }
+      }, STREAM_WORD_MS);
+    }
+    run();
+  }
+
   /* ---------- live status line demo ---------- */
 
   function startLiveDemo() {
@@ -232,6 +265,7 @@
         el.title = lines[index];
       }, STATUS_CYCLE_MS);
     });
+    document.querySelectorAll("[data-stream]").forEach(replayStream);
     document.querySelectorAll("[data-clock]").forEach(function (el) {
       var seconds = Number(el.dataset.clock);
       setInterval(function () {

@@ -1,3 +1,6 @@
+/* Hallmark · checked: 2026-11-27 · genre: modern-minimal (inferred) · shape: app screen
+ * built: the project (ui-designer) · redesign: polish · palette and faces: the user's VS Code theme · v2.0.0 */
+
 /*
  * Decision Ledger: design tokens for the chat panel webview.
  *
@@ -31,8 +34,11 @@
   /* ---------- Colour: lines ---------- */
   /* contrastBorder exists only in high-contrast themes, so it wins there and is skipped elsewhere. */
   --dl-color-border: var(--vscode-contrastBorder, var(--vscode-widget-border, #313131));
-  --dl-color-border-input: var(--vscode-contrastBorder, var(--vscode-input-border, #3c3c3c));
-  --dl-color-focus: var(--vscode-focusBorder, #0078d4);
+  /* A field edge needs 3:1 against its surroundings; many themes draw inputs with no visible edge,
+     so the edge is mixed from the secondary text colour, which every theme keeps readable. */
+  --dl-color-border-input: var(--vscode-contrastBorder, color-mix(in srgb, var(--dl-color-fg-secondary) 70%, var(--dl-color-input-bg)));
+  /* The theme's focus colour, lifted toward the text colour so the ring holds 3:1 on raised surfaces too. */
+  --dl-color-focus: var(--vscode-contrastActiveBorder, color-mix(in srgb, var(--vscode-focusBorder, #0078d4) 65%, var(--dl-color-fg)));
 
   /* ---------- Colour: actions ---------- */
   --dl-color-primary: var(--vscode-button-background, #0078d4);
@@ -90,8 +96,6 @@
   --dl-font-weight-regular: 400;
   --dl-font-weight-semibold: 600;
 
-  --dl-letter-spacing-label: 0.04em;
-
   /* ---------- Spacing (4px grid) ---------- */
   --dl-space-2xs: 2px;
   --dl-space-xs: 4px;
@@ -111,7 +115,7 @@
   /* ---------- Lines ---------- */
   --dl-border-width: 1px;
   --dl-border-width-strong: 2px;
-  --dl-focus-width: 1px;
+  --dl-focus-width: 2px;
   --dl-focus-offset: 2px;
   --dl-progress-height: 2px;
 
@@ -121,8 +125,8 @@
   /* ---------- Sizes ---------- */
   --dl-icon-size: 16px;
   --dl-icon-size-lg: 32px;
-  --dl-control-height: 26px;      /* VS Code button height for mouse */
-  --dl-control-height-sm: 22px;   /* toolbar icon buttons */
+  --dl-control-height: 32px;      /* app range is 32 to 40px; one step roomier than VS Code's own 26px */
+  --dl-control-height-sm: 32px;   /* toolbar icon buttons: square, same height as the buttons beside them */
   --dl-touch-target: 44px;        /* used instead of the two above on touch screens */
   --dl-composer-min-height: 40px; /* about two lines */
   --dl-composer-max-height: 200px;/* about eight lines, then it scrolls */

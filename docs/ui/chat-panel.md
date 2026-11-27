@@ -273,3 +273,23 @@ Numbers match the preview's state switcher.
 1. **Plain-text questions.** Claude often asks in its closing sentence instead of using its ask-the-user tool ("Want me to write the migration script next?"). Should the panel treat any reply whose final paragraph contains a question as a QuestionCard? **Recommendation: yes.** Show that final paragraph in full as a question; a false positive only shows a bit more text, while a miss hides a question.
 2. **Scope of "Allow for this session".** Per command prefix (`npm install` …) like Claude Code's own rules, or per tool (all Bash)? **Recommendation: command prefix for Bash, whole tool for edits**, with the scope written on the button.
 3. **Missed decisions.** The full reply exists because extraction misses things. Should the user be able to select a sentence in the full reply and record it as a decision ("Record as decision")? It isn't designed here: it needs a way to create a record without the engine.
+
+## Founder decisions, 2026-11-27
+
+These settle the open questions above and add one behaviour. The previews show each one.
+
+1. **Questions asked in plain text get the full question card.** When Claude ends a reply with a question in prose instead of using its ask-the-user tool ("Want me to add a test for…?"), the panel lifts that question into the same attention card, in full, with the composer switched to answering. A false alarm costs a little attention; a missed question costs a turn. Detecting these is the panel's job, not the engine's. Preview: state 9.
+2. **"Allow for this session" names its scope on the button.** For shell commands the scope is the command prefix (`Allow npm install … for this session`, covering every command that starts with `npm install` until a new conversation); for file edits it is the whole tool (`Allow all file edits for this session`). Preview: state 2.
+3. **A sentence the engine missed can be saved as a decision.** Selecting text in the expanded full reply offers *Save as decision*. The saved record is credited to whoever wrote the sentence (here claude-opus-5-5), grounded in that message with the selection as its quote, marked "Saved by <person> from the full reply", and committed as its own node. Grading it needs a grade-only call to the engine, which the engine does not have yet: a gap for the architect. Previews: states 7 and 8.
+4. **Claude's words stream in while it works.** Under the live status line, Claude's text arrives as written, unprocessed (a quiet left rule and a caret). When the turn ends, the stream is replaced by the processed reply, and the full text moves behind *Show full reply*. Under reduced motion the caret does not blink; with scripting off the whole text shows. Preview: state 3.
+
+## Hallmark polish, 2026-11-27
+
+The layout and the VS Code theme mapping stayed; the polish fixed what read as generated or broken:
+
+- Section and detail labels are sentence case in the body face, no longer tracked capitals.
+- Meta rows (author, grades, timing) separate their parts with space and a hairline instead of middle dots.
+- Counts are part of a heading's words ("4 decisions", "6 files changed") instead of a badge inside it.
+- Controls are 32px tall; the focus ring is 2px and lifted toward the text colour so it holds 3:1 on raised surfaces; field edges are mixed from the secondary text colour so they hold 3:1 in every theme.
+- The suggested-answer buttons align left; button labels never wrap; the panel never scrolls sideways.
+- Typographic quotes and apostrophes throughout.

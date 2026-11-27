@@ -1,3 +1,5 @@
+/* Hallmark · checked: 2026-11-27 · preview-only host theme: stands in for the --vscode-* variables VS Code injects · redesign: polish · v2.0.0 */
+
 /*
  * PREVIEW ONLY. Stands in for VS Code.
  *
@@ -9,7 +11,7 @@
  * Values approximate VS Code's built-in "Dark Modern" and "Light Modern" themes.
  */
 
-html.theme-dark {
+html[data-theme="dark"] {
   color-scheme: dark;
   --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Ubuntu, sans-serif;
   --vscode-font-size: 13px;
@@ -59,7 +61,7 @@ html.theme-dark {
   --sim-titlebar-fg: #cccccc;
 }
 
-html.theme-light {
+html[data-theme="light"] {
   color-scheme: light;
   --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Ubuntu, sans-serif;
   --vscode-font-size: 13px;

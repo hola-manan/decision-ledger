@@ -1,0 +1,13 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "polish",
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "host: VS Code theme variables",
+  "prompt": "Decision Ledger chat panel previews: polish plus founder additions (plain-text questions as cards, session scope on the button, save a missed sentence as a decision, live streaming)",
+  "signature": "the decision list: each decision with its author and grades, the full reply one click away",
+  "waived": [],
+  "date": "2026-11-27"
+ }
+]
