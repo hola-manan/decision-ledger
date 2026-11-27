@@ -56,8 +56,9 @@ type AssistantBlock =
 interface ToolCall {
   id: string;                         // tool_use id
   tool: string;                       // "Bash", "Edit", "AskUserQuestion", …
-  target?: string;                    // file path, URL, pattern or sub-agent description
-  command?: string;                   // Bash only, exact
+  file?: string;                      // file_path, path or notebook_path as logged (the turn projection's one-line note uses it)
+  target?: string;                    // what to show: file path, URL, pattern or sub-agent description
+  command?: string;                   // Bash only: the first line, at most MAX_COMMAND_CHARS (200); a heredoc body can be a whole file
   description?: string;               // Claude's short description (Bash, Task)
   questions?: AskedQuestion[];        // AskUserQuestion only
   edit?: FileChangeFact;              // Edit/MultiEdit/Write/NotebookEdit, counted from the input (fallback)
@@ -237,15 +238,15 @@ The format isn't documented. Every assumption below is implemented only in `src/
 | A2 | One JSON object per line, append-only, UTF-8, LF (a CR is trimmed); the last line can be partial while it is written | V | Partial lines wait for the next poll |
 | A3 | Top-level `type`: `user` and `assistant` are conversation. `system` (incl. `compact_boundary`), `attachment`, `summary`, `file-history-snapshot` and unknown types are ignored | V | Unknown types are skipped; drift report |
 | A4 | Conversation lines carry `uuid`, `parentUuid`, `sessionId`, `timestamp`, `cwd`, `isSidechain`, `isMeta`, `isCompactSummary`, `isVisibleInTranscriptOnly`; sidechain, meta and compact lines aren't conversation | V | Sub-agent chatter shows as conversation |
-| A5 | A person's prompt is a `user` line with string or text-block content, `origin.kind === "human"` in newer logs (absent in older ones), harness elements removed (existing allowlist rule); `permissionMode` is on it | V | Harness text is credited to the person |
+| A5 | A person's prompt is a `user` line with string or text-block content, `origin.kind === "human"` in newer logs (absent in older ones), harness elements removed (existing allowlist rule); `permissionMode` is on it. The allowlist decides only what was typed: tool-result lines carry no `origin` and are kept whatever it says | V | Harness text is credited to the person |
 | A6 | Assistant lines have `message.model`, `message.id`, `message.stop_reason`. Each content block is written as its own line with the same `message.id`, and every line repeats the stop reason (`tool_use` while tools follow, `end_turn` etc. at the end). Model `<synthetic>` is a Claude Code notice; with `isApiErrorMessage: true` it is an API error | V | Phase never reaches `ended`; stale fallback |
 | A7 | Tool results are `user` lines with `tool_result` blocks (`tool_use_id`, `is_error`) plus top-level `toolUseResult`: Edit/MultiEdit → `filePath`, `structuredPatch[{oldStart, oldLines, newStart, newLines, lines}]`; Write → `type: "create" \| "update"`, `filePath` | V | Counts fall back to tool inputs |
 | A8 | Tool inputs: Edit `{file_path, old_string, new_string}`, MultiEdit `{file_path, edits[]}`, Write `{file_path, content}`, NotebookEdit `{notebook_path, new_source, edit_mode?}`, Bash `{command, description?}`, Read/Grep/Glob `{file_path \| pattern \| path}`, WebFetch `{url}`, Task/Agent `{description}`, AskUserQuestion `{questions:[{question, header?, options:[{label, description?}], multiSelect?}]}` | V | Status text degrades to the tool name |
-| A9 | The `tool_use` line is written **before** Claude Code asks permission, and the result after the decision (I). A denial's result text starts "The user doesn't want to proceed with this tool use" (V) and has `is_error: true` (I) | V/I | Denials show as "failed"; no permission wait is ever detected |
-| A10 | An answered AskUserQuestion's result has `toolUseResult.answers` (question → answer) and text "User has answered your questions: …" (both seen; exact shape to pin in a fixture) | V/I | "Answered in Claude Code" without the answer |
+| A9 | The `tool_use` line is written **before** Claude Code asks permission, and the result after the decision (I). A denial's result text starts "The user doesn't want to proceed with this tool use" and has `is_error: true` (both V, Claude Code 2.1.289–2.1.332) | V/I | Denials show as "failed"; no permission wait is ever detected |
+| A10 | An answered AskUserQuestion's result has `toolUseResult.questions` and `toolUseResult.answers`, an object of question → answer string (several choices joined with ", "), and text "User has answered your questions: …" | V | "Answered in Claude Code" without the answer |
 | A11 | An interrupt is a `user` line whose text is `[Request interrupted by user]` or `[Request interrupted by user for tool use]` | V | "Stopped by you" shows as incomplete |
 | A12 | A new conversation in Claude Code creates a new file; file basename = `sessionId` | V | The follower still works from file mtimes |
-| A13 | Resuming a conversation may write a new file whose first lines repeat earlier history | I | Duplicate exchanges in a resumed session; harmless |
+| A13 | Resuming a conversation may write a new file whose first lines repeat earlier history, with the same line uuids | I | Panel: duplicate exchanges. Extraction: on a chat's first use the watcher skips turns whose log line already grounds a decision on this branch, so repeated history isn't recorded twice; a repeated turn that produced no decision before is sent again |
 | A14 | `entrypoint` is `"claude-vscode"` for the VS Code extension (V) and something else for the terminal (I). Not used for logic | V/I | None |
 
 **Fixtures are synthetic.** They're written by hand to match the real structure; real session logs are never committed, because they can hold secrets and code. When an **I** assumption is confirmed, record the Claude Code `version` field from the log you checked in the fixture's header comment.

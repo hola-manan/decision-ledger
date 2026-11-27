@@ -7,7 +7,7 @@ import { Author, Ledger, NewDecision, ParameterSet } from "../src/core/store";
 import { stripCode, splitCode, asMarkdownCode } from "../src/core/code";
 import { ingest, IngestMeta, parseIngestTurns } from "../src/core/ingest";
 import { CONFIG_FILE, ConfigError, DEFAULT_PARAMETERS, loadParameters } from "../src/core/parameters";
-import { parseClaudeCodeLines, appendTurns, findSessionFiles, isInsideWorkspace } from "../src/core/transcript";
+import { appendTurns } from "../src/watcher/turns";
 import { chunkTurns, splitText } from "../src/core/chunk";
 import { batchSize, ingestBacklog } from "../src/core/batches";
 import { InvalidInputError, type Model } from "../engine/src";
@@ -245,49 +245,6 @@ test("ingest: a decision the engine marks as replacing #1 supersedes that ledger
   assert.deepEqual(l.activeAt().map((r) => r.record.decision), ["Use Postgres"]);
 });
 
-test("transcript: Claude Code JSONL to turns, code dropped", () => {
-  const lines = [
-    JSON.stringify({ type: "user", sessionId: "S", uuid: "u1", message: { role: "user", content: "Add caching with Redis" } }),
-    JSON.stringify({
-      type: "assistant", sessionId: "S", uuid: "a1",
-      message: { content: [{ type: "text", text: "I'll use Redis with a 5 min TTL." }, { type: "tool_use", name: "Edit", input: { file_path: "/x/cache.ts", new_string: "CODE" } }] },
-    }),
-    JSON.stringify({ type: "user", uuid: "u2", message: { content: [{ type: "tool_result", content: "ok" }] } }),
-    JSON.stringify({ type: "assistant", uuid: "a2", message: { content: [{ type: "text", text: "Done." }] } }),
-    "not json",
-  ];
-  const t = parseClaudeCodeLines(lines);
-  assert.equal(t.length, 2);
-  assert.equal(t[0].author, "human");
-  assert.ok(t[1].text.includes("[Edit cache.ts]"));
-  assert.ok(!t[1].text.includes("CODE"));
-  assert.ok(t[1].text.includes("Done."));
-});
-
-test("transcript: AI turns carry the model name from the log; human turns have none (the watcher supplies it)", () => {
-  const lines = [
-    JSON.stringify({ type: "user", uuid: "u1", message: { role: "user", model: "spoofed", content: "Use tabs" } }),
-    JSON.stringify({ type: "assistant", uuid: "a1", message: { model: "claude-opus-5-5", content: [{ type: "text", text: "Switching to tabs." }] } }),
-  ];
-  const [human, ai] = parseClaudeCodeLines(lines);
-  assert.equal(human.name, undefined);
-  assert.equal(ai.name, "claude-opus-5-5");
-});
-
-test("transcript: Claude Code's own <synthetic> notices are not AI turns; merged AI turns keep the first known model", () => {
-  const assistant = (model: string | undefined, text: string) => JSON.stringify({ type: "assistant", message: { model, content: [{ type: "text", text }] } });
-  const lines = [
-    JSON.stringify({ type: "user", message: { content: "Go" } }),
-    assistant(undefined, "Looking."),
-    assistant("claude-opus-5-5", "Using Redis."),
-    assistant("<synthetic>", "You've hit your limit"),
-  ];
-  const turns = parseClaudeCodeLines(lines);
-  assert.equal(turns.length, 2);
-  assert.equal(turns[1].name, "claude-opus-5-5");
-  assert.ok(!turns[1].text.includes("limit"));
-});
-
 test("ingest: authors get the given name, else the local person or 'ai'; names are cleaned once", async () => {
   const l = Ledger.open(tmp());
   const everyTurn: Model = async (_s, u) => {
@@ -318,50 +275,6 @@ test("ingest input from outside (the CLI): authors use the engine's { kind, name
   rejects([{ author: { kind: "ai" } }], /^turns\[0\]\.text: expected a string/);
 });
 
-test("transcript: harness messages are not attributed to the human", () => {
-  const user = (uuid: string, content: unknown, origin?: unknown) =>
-    JSON.stringify({ type: "user", sessionId: "S", uuid, origin, message: { role: "user", content } });
-  const lines = [
-    user("u1", "Use SQLite for now", { kind: "human" }),
-    JSON.stringify({ type: "assistant", uuid: "a1", message: { content: [{ type: "text", text: "Starting a subagent." }] } }),
-    user("n1", "<task-notification>Agent finished: picked Postgres</task-notification>", { kind: "task-notification" }),
-    user("n2", "<task-notification>Legacy log, no origin tag</task-notification>"),
-    user("i1", [{ type: "text", text: "[Request interrupted by user]" }]),
-    user("c1", "<command-name>/clear</command-name>"),
-    user("h2", [
-      { type: "text", text: "<ide_opened_file>The user opened db.ts</ide_opened_file>" },
-      { type: "text", text: "Keep the schema flat" },
-      { type: "text", text: "<system-reminder>Be concise.</system-reminder>" },
-    ], { kind: "human" }),
-    user("h3", "<ide_selection>const x = 1;</ide_selection>\nMake this async", { kind: "human" }),
-    JSON.stringify({
-      type: "user", uuid: "s1", isCompactSummary: true, isVisibleInTranscriptOnly: true,
-      message: { content: "This session is being continued from a previous conversation. We chose Postgres." },
-    }),
-  ];
-  const t = parseClaudeCodeLines(lines);
-  assert.deepEqual(
-    t.map((x) => [x.author, x.text]),
-    [
-      ["human", "Use SQLite for now"],
-      ["ai", "Starting a subagent."],
-      ["human", "Keep the schema flat"],
-      ["human", "Make this async"],
-    ]
-  );
-});
-
-test("transcript: AI fragments merge the same way whether read in one go or across polls", () => {
-  const ai = (uuid: string, text: string) => JSON.stringify({ type: "assistant", uuid, message: { content: [{ type: "text", text }] } });
-  const lines = [JSON.stringify({ type: "user", uuid: "u1", message: { content: "Plan it" } }), ai("a1", "Part one."), ai("a2", "Part two.")];
-  const inOneRead = parseClaudeCodeLines(lines);
-  const acrossPolls = parseClaudeCodeLines(lines.slice(0, 2));
-  appendTurns(acrossPolls, parseClaudeCodeLines(lines.slice(2)));
-  assert.deepEqual(acrossPolls, inOneRead);
-  assert.equal(inOneRead.length, 2);
-  assert.equal(inOneRead[1].text, "Part one.\nPart two.");
-});
-
 test("chunk: long turns are split, not truncated, at natural breaks", () => {
   const paragraphs = Array.from({ length: 30 }, (_, i) => `Paragraph ${i} decides something about module ${i}.`);
   const text = paragraphs.join("\n\n");
@@ -379,19 +292,6 @@ test("chunk: code is stripped before splitting, so no half code block reaches th
   assert.ok(chunks.every((c) => !c.text.includes("secret")));
   assert.ok(chunks.some((c) => c.text.includes("keep it flat")));
   assert.ok(chunks.every((c) => c.author === "ai" && c.session === "S"));
-});
-
-test("transcript: with a start offset, each turn records the byte offset after its last line", () => {
-  const lines = [
-    JSON.stringify({ type: "user", uuid: "u1", message: { content: "Use café-style names" } }),
-    JSON.stringify({ type: "assistant", uuid: "a1", message: { content: [{ type: "text", text: "One." }] } }),
-    JSON.stringify({ type: "assistant", uuid: "a2", message: { content: [{ type: "text", text: "Two." }] } }),
-    "",
-  ];
-  const ends = lines.slice(0, 3).reduce<number[]>((acc, l) => [...acc, (acc.at(-1) ?? 100) + Buffer.byteLength(l) + 1], []);
-  const turns = parseClaudeCodeLines(lines, 100);
-  assert.deepEqual(turns.map((t) => t.endOffset), [ends[0], ends[2]]); // merged AI turn ends after its last fragment
-  assert.equal(parseClaudeCodeLines(lines)[0].endOffset, undefined);
 });
 
 test("batches: a batch ends where a source turn ends, unless one turn alone overflows it", () => {
@@ -454,32 +354,3 @@ test("backoff: delays double up to a cap, each distinct error is reported once, 
   assert.equal(b.fail("quota exceeded", 0), true);
 });
 
-test("transcript: finds session files for a workspace", () => {
-  const root = tmp();
-  // Native absolute path, so the encoded folder name matches on Windows and POSIX alike.
-  const ws = path.join(tmp(), "proj");
-  const d = path.join(root, path.resolve(ws).replace(/[^a-zA-Z0-9]/g, "-"));
-  fs.mkdirSync(d);
-  fs.writeFileSync(path.join(d, "s.jsonl"), "");
-  const other = path.join(root, "weird");
-  fs.mkdirSync(other);
-  fs.writeFileSync(path.join(other, "t.jsonl"), JSON.stringify({ cwd: path.join(ws, "sub") }) + "\n");
-  const sibling = path.join(root, "sibling");
-  fs.mkdirSync(sibling);
-  fs.writeFileSync(path.join(sibling, "u.jsonl"), JSON.stringify({ cwd: ws + "-old" }) + "\n");
-  assert.equal(findSessionFiles(root, ws).length, 2);
-});
-
-test("transcript: workspace matching handles Windows path forms and prefix collisions", () => {
-  const win = (candidate: string, workspace: string) => isInsideWorkspace(candidate, workspace, "win32");
-  assert.ok(win("c:\\Users\\me\\proj", "C:\\Users\\me\\proj"));
-  assert.ok(win("C:\\USERS\\me\\proj\\sub", "c:\\Users\\me\\proj"));
-  assert.ok(win("/c/Users/me/proj/sub", "c:\\Users\\me\\proj"));
-  assert.ok(!win("c:\\Users\\me\\project", "c:\\Users\\me\\proj"));
-  assert.ok(!win("d:\\Users\\me\\proj", "c:\\Users\\me\\proj"));
-
-  const posix = (candidate: string, workspace: string) => isInsideWorkspace(candidate, workspace, "linux");
-  assert.ok(posix("/home/me/proj/sub", "/home/me/proj"));
-  assert.ok(!posix("/home/me/project", "/home/me/proj"));
-  assert.ok(!posix("/home/me/Proj", "/home/me/proj"));
-});

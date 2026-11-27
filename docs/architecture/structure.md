@@ -42,7 +42,8 @@ decision-ledger/
 │   │   └── listeners.ts         # tiny listener/Unsubscribe helper (no vscode)
 │   ├── watcher/                 # extraction pipeline (was src/watcher.ts)
 │   │   ├── index.ts
-│   │   ├── watcher.ts           # AgentWatcher: subscribes to the source; flush policy; backoff; toasts
+│   │   ├── watcher.ts           # AgentWatcher: the VS Code adapter (settings, model, warnings with fixes)
+│   │   ├── pipeline.ts          # ExtractionPipeline: subscribes to the source; flush policy; backoff (no vscode)
 │   │   ├── turns.ts             # LogEntry → RawTurn (moved from transcript.ts), appendTurns
 │   │   ├── status.ts            # ExtractionStatus, ExtractionStatusProvider (no vscode)
 │   │   └── offsets.ts           # watch.json read/write: { offset } (no vscode)
@@ -120,7 +121,7 @@ decision-ledger/
 ## Boundary rules, enforced by `test/boundaries.test.ts`
 
 A small test reads the source files' import lines and fails if:
-- a file outside a module imports a deep path of `claude-log`, `watcher`, `panel` or `protocol` instead of its `index.ts`;
+- a file under `src/` outside a module imports a deep path of `claude-log`, `watcher`, `panel` or `protocol` instead of its `index.ts` (tests may import a module's vscode-free files directly, since an `index.ts` that re-exports a vscode adapter can't load under `node --test`);
 - anything under `src/panel/`, `src/protocol/` or `src/webview/` imports `engine` (rule 6: no model path from the panel);
 - anything under `src/claude-log/`, `src/protocol/`, `src/webview/model/` or a file marked pure/no-vscode above imports `vscode`;
 - `src/webview/` imports anything outside `src/webview/` and `src/protocol/`.

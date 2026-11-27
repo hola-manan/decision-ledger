@@ -1,11 +1,17 @@
 import * as vscode from "vscode";
-import { Ledger, LedgerNode, DecisionRecord } from "./core/store";
-import { shortHash } from "./core/ingest";
+import * as os from "os";
+import * as path from "path";
+import { CONFIG_FILE, ensureConfigFile, Ledger, shortHash, type DecisionRecord, type LedgerNode } from "./core";
 import { registerChat } from "./chat";
 import { AgentWatcher } from "./watcher";
+import { createSessionLogSource } from "./claude-log";
 import { GEMINI_SECRET_KEY, SECRET_KEY } from "./provider";
 import { diffDoc, gradesText, recordDoc, stateDoc, who } from "./render";
-import { CONFIG_FILE, ensureConfigFile } from "./core/parameters";
+
+function claudeProjectsDir(): string {
+  const configured = vscode.workspace.getConfiguration("ledger").get<string>("agents.claudeProjectsDir", "");
+  return configured || path.join(os.homedir(), ".claude", "projects");
+}
 
 function recordTooltip(ledger: Ledger, r: DecisionRecord): string {
   const parts = [`**${r.decision}**`, who(r.author)];
@@ -91,7 +97,13 @@ export function activate(ctx: vscode.ExtensionContext) {
 
   registerChat(ctx, getLedger, refresh);
 
-  const watcher = new AgentWatcher(ctx, getLedger, root, out, refresh);
+  // One reader of Claude Code's logs, shared by everything that needs them (D-003).
+  const source = createSessionLogSource({
+    projectsDir: claudeProjectsDir(),
+    workspace: root,
+    pollMs: vscode.workspace.getConfiguration("ledger").get<number>("agents.pollSeconds", 5) * 1000,
+  });
+  const watcher = new AgentWatcher(ctx, getLedger, source, root, out, refresh);
   if (vscode.workspace.workspaceFolders && vscode.workspace.getConfiguration("ledger").get("agents.watchClaudeCode", true)) watcher.start();
   // A new key or engine setting may fix a failing watcher; don't make it wait out the backoff.
   // Nor should a fixed .ledger/config.json.
@@ -125,7 +137,7 @@ export function activate(ctx: vscode.ExtensionContext) {
   };
 
   ctx.subscriptions.push(
-    out, view, fsw, watcher,
+    out, view, fsw, watcher, source,
     vscode.commands.registerCommand("ledger.refresh", refresh),
     vscode.commands.registerCommand("ledger.openRecord", run((hash: string) => showMarkdown(recordDoc(getLedger(), hash)))),
     vscode.commands.registerCommand("ledger.showText", run((text: string) => showMarkdown(text))),

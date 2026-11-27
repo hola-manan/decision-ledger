@@ -30,7 +30,7 @@ Consequences: A format change is fixed in one folder. File contents and tool out
 Context: The panel should feel live. `fs.watch` is unreliable on Windows and in OneDrive-synced folders, and the watcher already polls.
 Decision: Discovery and other files are polled at `ledger.agents.pollSeconds` (5 s). The followed file is stat-ed every `LIVE_POLL_MS` (750 ms) and read only when it has grown.
 Alternatives: `fs.watch` or `vscode.workspace.createFileSystemWatcher` outside the workspace (unreliable, platform-specific); uniform fast polling (wasteful across many sessions).
-Consequences: Up to about 1 s of latency in the panel. A new session is noticed within about 5 s. Discovery memoises "is this file in the workspace", because the head-scan of unmatched folders was being repeated on every poll.
+Consequences: `ledger.agents.pollSeconds` and `ledger.agents.claudeProjectsDir` are read when the extension starts; changing them takes a window reload. Up to about 1 s of latency in the panel. A new session is noticed within about 5 s. Discovery memoises "is this file in the workspace", because the head-scan of unmatched folders was being repeated on every poll.
 
 ## D-006: An exchange is one human prompt up to the next
 Context: The panel shows "exchanges", and the log is a flat list of lines.

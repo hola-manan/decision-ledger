@@ -61,6 +61,7 @@ The webview is a separate program (it runs in the webview's browser context); it
 
 ### watcher
 - Subscribes to the source instead of reading files.
+- **`pipeline.ts`** holds all of the logic without vscode (so it's unit-tested); **`watcher.ts`** is the thin VS Code adapter: settings, the model, warnings with fixes.
 - **`turns.ts`**: `LogEntry[]` → `RawTurn[]` (moved from `transcript.ts`: one-line tool notes, merge consecutive AI fragments, end offsets). Same output as today; the existing tests move with it.
 - Flushes a file's backlog when the turn ends (`isTurnEnd`), when the file has been quiet `idleSeconds`, or at 24 turns (D-011).
 - Tracks every used chat from offset 0, so its earlier exchanges are extracted too (D-020).

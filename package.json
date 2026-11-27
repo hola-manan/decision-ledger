@@ -215,11 +215,6 @@
           "default": "",
           "description": "Override ~/.claude/projects."
         },
-        "ledger.agents.importExisting": {
-          "type": "boolean",
-          "default": false,
-          "description": "Also process sessions that existed before the extension started."
-        },
         "ledger.agents.idleSeconds": {
           "type": "number",
           "default": 20,
@@ -233,9 +228,10 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p .",
-    "test": "tsc -p . && node --test out/test/*.test.js && npm test -w engine",
-    "package": "tsc -p . && vsce package --no-dependencies"
+    "compile": "npm run clean && tsc -p .",
+    "test": "npm run compile && node --test out/test/*.test.js && npm test -w engine",
+    "package": "npm run compile && vsce package --no-dependencies",
+    "clean": "node scripts/clean.mjs"
   },
   "repository": {
     "type": "git",

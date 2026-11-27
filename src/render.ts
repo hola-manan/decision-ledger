@@ -1,20 +1,10 @@
 import { GRADE_MAX, GRADE_MIN } from "../engine/src";
-import type { Author, DecisionRecord, Ledger, LedgerNode, ParameterSet } from "./core/store";
-import { shortHash } from "./core/ingest";
+import { namedGrades, shortHash, type Author, type DecisionRecord, type Ledger, type LedgerNode } from "./core";
 
 export const who = (a: Author) => `${a.kind === "human" ? "👤" : "🤖"} ${a.name}`;
 
 export function cmdLink(cmd: string, label: string, ...args: unknown[]): string {
   return `[${label}](command:${cmd}?${encodeURIComponent(JSON.stringify(args))})`;
-}
-
-/** Each grade with its parameter's name, as it was defined when the record was graded. */
-export function namedGrades(ledger: Ledger, r: DecisionRecord): { name: string; grade: number; low?: string; high?: string }[] {
-  const definitions = r.parameterSet ? ledger.get<ParameterSet>(r.parameterSet).parameters : [];
-  return Object.entries(r.grades).map(([id, grade]) => {
-    const definition = definitions.find((p) => p.id === id);
-    return { name: definition?.name ?? id, grade, low: definition?.low, high: definition?.high };
-  });
 }
 
 /** "Code span 4/5 · Reversibility 2/5", or "" if ungraded. */

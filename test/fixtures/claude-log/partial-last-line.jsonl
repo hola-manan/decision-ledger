@@ -1,0 +1,3 @@
+{"type":"fixture-note","claudeCodeVersion":"2.1.332","note":"A2: the last line is half-written (no newline yet)."}
+{"parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/work/proj","sessionId":"S1","version":"2.1.332","entrypoint":"claude-vscode","uuid":"uuid-1","timestamp":"2026-11-27T10:00:01.000Z","type":"user","origin":{"kind":"human"},"permissionMode":"default","message":{"role":"user","content":"First prompt."}}
+{"parentUuid":"uuid-1","isSidechain":fal

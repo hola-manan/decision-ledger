@@ -9,8 +9,21 @@
  */
 import type { Ledger } from "./store";
 import type { Model } from "../../engine/src";
-import type { RawTurn } from "./transcript";
+import type { AuthorKind } from "./store";
 import { ingest, IngestMeta } from "./ingest";
+
+/** A turn read from an agent's session log, before chunking. */
+export interface RawTurn {
+  author: AuthorKind;
+  /** The model that wrote an AI turn, when the log says; the human's name is never in the log. */
+  name?: string;
+  text: string;
+  externalId: string;
+  timestamp: string;
+  session: string;
+  /** Byte offset just past the turn's last source line; batches end only where it changes. */
+  endOffset?: number;
+}
 
 export interface BatchCommitted {
   turns: number;

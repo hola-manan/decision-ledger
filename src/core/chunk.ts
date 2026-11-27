@@ -3,7 +3,7 @@
  * truncated, so a decision near the end of a long agent run still reaches the model.
  */
 import { stripCode } from "./code";
-import type { RawTurn } from "./transcript";
+import type { RawTurn } from "./batches";
 
 /**
  * Code is stripped before splitting: a split inside a fenced block would leave its

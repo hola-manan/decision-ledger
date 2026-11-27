@@ -1,0 +1,2 @@
+# Log fixtures are byte-exact: offset tests depend on their line endings.
+*.jsonl -text

@@ -11,6 +11,11 @@ export class RetryBackoff {
   private retryAt = 0;
   private lastError: string | undefined;
 
+  /** When the next try is allowed; 0 when there is no failure to wait out. */
+  get nextTryAt(): number {
+    return this.retryAt;
+  }
+
   canTry(now: number): boolean {
     return now >= this.retryAt;
   }

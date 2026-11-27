@@ -276,12 +276,13 @@ interface SessionLogSource {
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe;
 }
 
-function createSessionLogSource(options: { projectsDir: string; workspace: string; pollMs: number; clock?: Clock }): SessionLogSource;
+function createSessionLogSource(options: { projectsDir: string; workspace: string; pollMs: number; polling?: "auto" | "manual" }): PollingSessionLogSource;
+// PollingSessionLogSource adds tick() (one full poll), tickLive(), isPolling and dispose(); "manual" starts no timers, so tests drive it with tick().
 function parseLogLines(lines: string[], startOffset: number): LogEntry[];   // the parser, for tests and backfill
 function isTurnEnd(entry: LogEntry): boolean;
 ```
 
-Cursor rule: a file that existed when the source started begins at its size; a file discovered later begins at 0, so a new session's first prompt is never skipped. Subscribers that need earlier lines (the panel, and the watcher on a chat's first use per D-020) backfill with `read(file, 0, cursor)`.
+Cursor rule: a file that existed when the source started begins at its last complete line; a file discovered later begins at 0, so a new session's first prompt is never skipped. Subscribers that need earlier lines (the panel, and the watcher on a chat's first use per D-020) backfill with `read(file, 0, cursor)`.
 
 ### watcher
 
@@ -303,10 +304,19 @@ interface ExtractionStatusProvider {
 function toRawTurns(entries: LogEntry[]): RawTurn[];
 function appendTurns(turns: RawTurn[], more: RawTurn[]): void;   // unchanged merge rule
 
-// watcher/watcher.ts
+// watcher/pipeline.ts (no vscode): all of the watcher's logic, so it can be unit-tested
+class ExtractionPipeline implements ExtractionStatusProvider {
+  constructor(options: { ledger, source, model: () => Promise<Model>, humanName: () => string, idleMs: () => number,
+                         checkEveryMs: number, log, onCommitted, onFailure, onRecovered, now? });
+  start(): void; stop(): void; readonly isRunning: boolean;
+  useSession(file: string): void;             // the panel follows this chat: process it from its first message (D-020)
+  checkNow(): Promise<void>;                  // extract every file that is due
+}
+
+// watcher/watcher.ts: the VS Code adapter (settings, getEngine, warnings with fixes)
 class AgentWatcher implements ExtractionStatusProvider, vscode.Disposable {
-  constructor(ctx, ledger: () => Ledger, source: SessionLogSource, log: vscode.OutputChannel, onChange: () => void);
-  start(): void; stop(): void; readonly running: boolean;
+  constructor(ctx, ledger: () => Ledger, source: SessionLogSource, workspace: string, log: vscode.OutputChannel, onChange: () => void);
+  start(): void; stop(): void; readonly running: boolean; useSession(file: string): void;
 }
 ```
 
