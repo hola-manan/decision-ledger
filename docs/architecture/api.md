@@ -363,8 +363,13 @@ class ExchangeBuilder {
   apply(entries: LogEntry[]): string[];                     // ids of exchanges that changed
   exchanges(): readonly Exchange[];
   exchangeOfEntry(uuid: string): Exchange | undefined;
+  readonly orphanResults: number;                           // results with no call in their exchange (drift signal)
 }
 function phaseOf(ex: Exchange, now: number, quietSince: number): { phase: "working" | "ended"; endReason: EndReason | null };
+function hasPendingCall(ex: Exchange): boolean;
+function hasPendingQuestion(ex: Exchange): boolean;         // an unanswered AskUserQuestion; waiting.ts reuses it
+const STALE_EXCHANGE_MS = 600_000;
+const ASK_USER_QUESTION_TOOL = "AskUserQuestion";
 function detectWaiting(ex: Exchange, now: number, quietSince: number): Waiting | null;
 function collectFileChanges(ex: Exchange): FileChange[];
 function activityText(ex: Exchange): string | null;

@@ -26,7 +26,7 @@ One JSONL line becomes zero or more entries. Entries are format-agnostic: no oth
 interface EntryBase {
   uuid: string;          // the line's uuid (A4)
   sessionId: string;
-  timestamp: string;     // ISO 8601
+  timestamp: string;     // ISO 8601, or "" when the line has none
   startOffset: number;   // byte offset of the line's start in its file
   endOffset: number;     // byte offset just past the line's newline
 }
@@ -112,7 +112,8 @@ interface Exchange {
   calls: Map<string, CallState>; // by tool_use id
   lastAssistant?: AssistantEntry;
   interrupted: boolean;
-  lastEntryAt: string;           // timestamp of the last entry
+  isReplaced: boolean;           // a later prompt started another exchange
+  lastEntryAt: string;           // timestamp of the last entry ("" until one has a timestamp)
 }
 
 type ReplyPart = { type: "text"; text: string } | { type: "step"; callId: string };
@@ -124,8 +125,8 @@ interface CallState { call: ToolCall; at: string; result?: ToolResultEntry }
 
 | Value | Rule |
 |---|---|
-| `phase` | `"ended"` if `lastAssistant` passes `isTurnEnd` and no call is pending; or `interrupted`; or the last assistant entry is an `apiError`; or **stale**: the session file has been quiet `STALE_EXCHANGE_MS` (10 min) with no certain wait. Otherwise `"working"`. |
-| `endReason` | `"stoppedByUser"` if interrupted; `"error"` if the last assistant entry has `apiError`; `"incomplete"` if stale; else `"done"`. |
+| `phase` | `"ended"` if `interrupted`; or the last assistant entry is an `apiError`; or `lastAssistant` passes `isTurnEnd` and no call is pending; or **replaced**: a later prompt started another exchange (`isReplaced`): everything after it belongs to the newer exchange, so this one will never finish; or **stale**: the session file has been quiet `STALE_EXCHANGE_MS` (10 min) with no certain wait. Otherwise `"working"`. Checked in that order. |
+| `endReason` | `"stoppedByUser"` if interrupted; `"error"` if the last assistant entry has `apiError`; `"done"` if the reply finished; `"incomplete"` if replaced or stale. |
 | `durationMs` | last entry time − prompt time. |
 | `activity` (while working) | From the newest pending call: the status wording table in `docs/ui/chat-panel.md`, built from `tool` + `target`/`description`. With no pending call: "Thinking…". |
 | `waiting` | See [Waiting detection](#waiting-detection). |
@@ -145,6 +146,8 @@ Computed by `detectWaiting(exchange, now, quietSince)`, with an honest confidenc
 
 When the call's result arrives: `rejected` → resolved line "Denied in Claude Code"; otherwise the step shows as ran or failed.
 
+An exchange whose phase is `ended` (including one replaced by a later prompt) has no `certain` or `possible` wait, even if a call never got its result; only the `likely` text question can sit on an ended exchange.
+
 ### Exchange lifecycle (derived)
 
 ```mermaid
@@ -156,8 +159,9 @@ stateDiagram-v2
   working --> ended_stopped: interrupt line
   working --> ended_error: API-error notice is last
   working --> ended_incomplete: quiet 10 min
-  ended_incomplete --> working: new lines arrive
+  ended_incomplete --> working: new lines arrive (stale only)
   ended_error --> working: Claude Code retried and wrote more
+  working --> ended_replaced: next prompt (reply never finished; final, endReason "incomplete")
   ended_done --> [*]: next prompt starts a new exchange
 ```
 
@@ -216,7 +220,8 @@ erDiagram
 
 1. Every exchange starts with exactly one `PromptEntry`. Entries before a session's first prompt belong to no exchange.
 2. `Exchange.id` = prompt uuid = the human `Turn.externalId` for that prompt.
-3. Entries are applied in byte-offset order. An entry is never applied twice (the builder ignores `endOffset <= lastApplied`).
+3. Entries are applied in byte-offset order. An entry is never applied twice: each `apply` call skips entries ending at or before the offset reached when the call began. Entries from one line share offsets, so a line's entries must arrive in one batch (the source only ever emits whole lines). A batch that ends before that offset (a backfill after appends) is skipped, so backfill first; rebuilding after "the log got shorter" means a new builder.
+3a. A prompt whose uuid already started an exchange (repeated history, A13) is skipped together with the entries that follow it, until the next new prompt. An entry uuid belongs to one exchange (in `entryIds` and `exchangeOfEntry`); only a prompt takes one over, since an interrupt and the next prompt can share a line. When a prompt takes over a line it shares with an interrupt, the earlier exchange ends at that line's start. Entries without a uuid are not mapped; a prompt without one gets the id `line:<startOffset>` and is never treated as a repeat.
 4. A `ToolResultEntry` attaches only to a call with the same id in the same exchange. Orphans are ignored and counted for drift reporting.
 5. No `LogEntry`, `Exchange` or view carries file contents, patches or tool output. Assistant text (which may contain code) is display-only and never reaches a model from the panel.
 6. A decision shown under an exchange is a record in the current branch's state whose turn maps into that exchange. Count shown = records listed.
