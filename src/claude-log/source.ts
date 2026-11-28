@@ -51,6 +51,8 @@ export interface SessionLogSource {
   watchClosely(file: string | undefined): void;
   onDidDiscover(listener: (file: SessionFile) => void): Unsubscribe;
   onDidAppend(listener: (batch: LogBatch) => void): Unsubscribe;
+  /** A session file that was known is gone (deleted, or moved out of the workspace). */
+  onDidRemove(listener: (file: string) => void): Unsubscribe;
   onDidFail(listener: (failure: SourceFailure) => void): Unsubscribe;
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe;
 }
@@ -85,6 +87,7 @@ export class PollingSessionLogSource implements SessionLogSource {
   private readonly cwdMemo = new Map<string, boolean>();
   private readonly discovered = new Listeners<SessionFile>();
   private readonly appended = new Listeners<LogBatch>();
+  private readonly removed = new Listeners<string>();
   private readonly failed = new Listeners<SourceFailure>();
   private readonly drifted = new Listeners<{ file: string; lines: number }>();
   private leases = 0;
@@ -136,6 +139,10 @@ export class PollingSessionLogSource implements SessionLogSource {
     return this.appended.add(listener);
   }
 
+  onDidRemove(listener: (file: string) => void): Unsubscribe {
+    return this.removed.add(listener);
+  }
+
   onDidFail(listener: (failure: SourceFailure) => void): Unsubscribe {
     return this.failed.add(listener);
   }
@@ -172,7 +179,7 @@ export class PollingSessionLogSource implements SessionLogSource {
     const existedAtStart = !this.hasScanned;
     this.hasScanned = true;
     const present = new Set(found);
-    for (const file of this.files.keys()) if (!present.has(file)) this.files.delete(file);
+    for (const file of [...this.files.keys()]) if (!present.has(file)) this.forget(file);
     for (const file of found) if (!this.files.has(file)) this.track(file, existedAtStart);
   }
 
@@ -189,6 +196,11 @@ export class PollingSessionLogSource implements SessionLogSource {
   private stopPolling(): void {
     for (const timer of this.timers) clearInterval(timer);
     this.timers = [];
+  }
+
+  private forget(file: string): void {
+    this.files.delete(file);
+    this.guarded(file, () => this.removed.emit(file));
   }
 
   private track(file: string, existedAtStart: boolean): void {

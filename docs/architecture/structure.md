@@ -62,6 +62,7 @@ decision-ledger/
 │   │   ├── linker.ts            # DecisionLinker                           (no vscode)
 │   │   ├── extraction.ts        # sectionState                             (pure)
 │   │   ├── view.ts              # → protocol views                         (pure)
+│   │   ├── paths.ts             # displayPath: relative to the workspace   (pure)
 │   │   ├── errors.ts            # toPanelError: the one error conversion   (pure)
 │   │   ├── follower.ts          # SessionFollower                          (no vscode)
 │   │   ├── session-panel.ts     # SessionPanel orchestrator behind ports   (no vscode)
@@ -73,6 +74,8 @@ decision-ledger/
 │   │   ├── filter.ts            # Filter view messages + parseFilterMessage (D-021)
 │   │   ├── version.ts           # PROTOCOL_VERSION
 │   │   ├── messages.ts          # HostMessage, WebviewMessage unions
+│   │   ├── schema.ts            # the small hand-written check combinators (D-013)
+│   │   ├── view-checks.ts       # checks per view type, asserted equal to views.ts at compile time
 │   │   ├── views.ts             # ExchangeView and friends
 │   │   ├── errors.ts            # PanelError, codes, actions
 │   │   └── validate.ts          # parseHostMessage, parseWebviewMessage
@@ -97,7 +100,8 @@ decision-ledger/
     ├── claude-log.test.ts       # new: parser per assumption, discovery (moved tests), source
     ├── watcher.test.ts          # new: turns projection (moved tests), flush policy, offsets
     ├── panel-exchanges.test.ts  # new: builder, phase, waiting, files, activity
-    ├── panel-decisions.test.ts  # new: linker, sectionState, view mapping
+    ├── panel-decisions.test.ts  # new: linker, sectionState
+    ├── panel-view.test.ts       # new: view mapping, display paths, toPanelError
     ├── panel-session.test.ts    # new: SessionPanel + follower with fake ports
     ├── protocol.test.ts         # new: validators accept/reject each message
     ├── webview-model.test.ts    # new: reducer, format, markdown

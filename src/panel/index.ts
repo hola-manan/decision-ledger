@@ -6,3 +6,8 @@ export { activityText, THINKING, WRITING_REPLY, type DisplayPath } from "./activ
 export { detectWaiting, PERMISSION_QUIET_MS, TOOLS_THAT_NEVER_ASK, TEXT_QUESTION_PREFIX, type Waiting, type WaitingConfidence } from "./waiting";
 export { DecisionLinker, type LinkedDecision } from "./linker";
 export { sectionState, type DecisionSectionState } from "./extraction";
+export { toPanelError, type ErrorContext, type ErrorScope } from "./errors";
+export { displayPath } from "./paths";
+export { deriveExchange, toExchangeView, toDecisionSectionView, type Derived, type ExchangeViewInput, type DecisionSectionInput } from "./view";
+export { closingQuestion } from "./waiting";
+export { SessionFollower, type FollowChoice } from "./follower";

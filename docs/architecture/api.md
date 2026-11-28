@@ -290,6 +290,7 @@ interface SessionLogSource {
   watchClosely(file: string | undefined): void;              // poll this file every LIVE_POLL_MS (750 ms)
   onDidDiscover(listener: (file: SessionFile) => void): Unsubscribe;
   onDidAppend(listener: (batch: LogBatch) => void): Unsubscribe;
+  onDidRemove(listener: (file: string) => void): Unsubscribe;   // a known session file is gone
   onDidFail(listener: (failure: { file: string | null; error: Error }) => void): Unsubscribe;
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe;
 }
@@ -390,17 +391,27 @@ class DecisionLinker {
 interface LinkedDecision { hash: string; record: DecisionRecord; nodeHash: string; grades: NamedGrade[]; replaces: { hash: string; seq: number; decision: string; authorName: string } | null }
 
 function sectionState(input: { exchange: Exchange; phase: Phase; status: ExtractionStatus }): DecisionSectionView["state"];   // whether "notYet" shows (only with decisions so far) is the view's call
-function toExchangeView(input: { exchange: Exchange; derived: Derived; linked: LinkedDecision[]; section: DecisionSectionView; humanName: string; workspace: string }): ExchangeView;
-function toPanelError(error: unknown): PanelError;
+interface Derived { phase: Phase; waiting: Waiting | null }              // the clock-dependent values, computed once per render
+function deriveExchange(ex: Exchange, now: number, quietSince: number): Derived;
+function toDecisionSectionView(input: { state: DecisionSectionState; linked: LinkedDecision[]; branch: string | null; failure: { error: unknown; retryAt: number | null } | null }): DecisionSectionView;
+function toExchangeView(input: { exchange: Exchange; derived: Derived; decisions: DecisionSectionView; humanName: string; workspace: string }): ExchangeView;
+function displayPath(file: string, workspace: string, platform?: NodeJS.Platform): string;   // relative with "/", else absolute
+function closingQuestion(ex: Exchange): string | null;                 // the reply's closing question, shown as a text QuestionView
+function toPanelError(error: unknown, context?: { scope?: "section" | "session" | "ledger"; retryAt?: number | null }): PanelError;   // scope picks the code for fs and unknown errors
 
 type FollowChoice = { mode: "auto" } | { mode: "pinned"; sessionId: string };
+/** Construct after acquiring the source (the first scan has run). It sets source.watchClosely to the followed file. */
 class SessionFollower {
-  constructor(source: SessionLogSource, initial: FollowChoice, save: (choice: FollowChoice) => void);
+  constructor(source: SessionLogSource, initial: FollowChoice, save: (choice: FollowChoice) => void, now?: () => number);   // a pinned session that's gone → auto, saved
+  readonly mode: "auto" | "pinned";
   current(): SessionFile | undefined;
-  pin(sessionId: string): void;
-  followLatest(): void;
-  onDidChange(listener: (file: SessionFile | undefined) => void): Unsubscribe;
+  pin(sessionId: string): boolean;                          // false if the session isn't known
+  followLatest(): void;                                     // auto; the session with the newest prompt seen, else the newest file
+  onDidChange(listener: (file: SessionFile | undefined) => void): Unsubscribe;   // the file or the mode changed
+  dispose(): void;
 }
+// Auto mode moves on a prompt whose own timestamp is newer than the followed session's last prompt (or than when following began),
+// so history replayed from a file found later never moves the panel.
 
 /** The orchestrator: everything the panel does, behind ports, so it is testable without VS Code. */
 class SessionPanel {

@@ -57,16 +57,20 @@ function mayAsk({ call }: CallState, permissionMode: string | undefined): boolea
   return !(EDIT_TOOLS.has(call.tool) && permissionMode === ACCEPT_EDITS_MODE);
 }
 
-/** The reply's last text ends its final paragraph with a question, outside any code block. */
 function textQuestion(exchange: Exchange): Waiting | null {
-  const text = lastTextPart(exchange);
-  if (text === undefined || !endsWithQuestion(text)) return null;
+  if (closingQuestion(exchange) === null) return null;
   return { kind: "question", confidence: "likely", since: exchange.lastEntryAt, id: `${TEXT_QUESTION_PREFIX}${exchange.id}` };
 }
 
-function endsWithQuestion(text: string): boolean {
+/**
+ * The final paragraph of the reply's last text, if it is a question (ends with `?`, outside
+ * any code block); else null. Whether anyone is still waiting on it is detectWaiting's call.
+ */
+export function closingQuestion(exchange: Exchange): string | null {
+  const text = lastTextPart(exchange);
+  if (text === undefined) return null;
   const prose = text.replace(CLOSED_FENCED_BLOCK, "\n\n");
-  if (FENCE_LINE.test(prose)) return false;
-  const finalParagraph = prose.trim().split(PARAGRAPH_BREAK).at(-1) ?? "";
-  return ENDS_WITH_QUESTION.test(finalParagraph.trim());
+  if (FENCE_LINE.test(prose)) return null; // ends inside an unclosed code block
+  const finalParagraph = (prose.trim().split(PARAGRAPH_BREAK).at(-1) ?? "").trim();
+  return ENDS_WITH_QUESTION.test(finalParagraph) ? finalParagraph : null;
 }

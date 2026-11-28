@@ -2,12 +2,13 @@
  * The decision section's state for one exchange (data-model.md §3, "Decision-section
  * state"). Pure: it reads the watcher's status, never the watcher itself.
  */
-import { ConfigError, NoModelError } from "../core";
+import type { DecisionSectionState } from "../protocol";
 import type { ExtractionStatus } from "../watcher";
+import { toPanelError } from "./errors";
 import type { Exchange } from "./exchanges";
 import type { Phase } from "./phase";
 
-export type DecisionSectionState = "notYet" | "extracting" | "done" | "failed" | "noModel" | "configInvalid" | "off";
+export type { DecisionSectionState };
 
 /**
  * Checked in order: watching off; reply still running; committed (the count may be 0);
@@ -23,8 +24,10 @@ export function sectionState(input: { exchange: Exchange; phase: Phase; status: 
   return "extracting";
 }
 
+/** The failure's kind comes from toPanelError, so errors are classified in one place. */
 function failureState(error: unknown): DecisionSectionState {
-  if (error instanceof NoModelError) return "noModel";
-  if (error instanceof ConfigError) return "configInvalid";
+  const { code } = toPanelError(error);
+  if (code === "NO_MODEL") return "noModel";
+  if (code === "LEDGER_CONFIG_INVALID") return "configInvalid";
   return "failed";
 }

@@ -81,10 +81,14 @@ function readHead(file: string, bytes: number): string {
 
 /** A path as logged, in a form two spellings of the same file share (Windows: case, separators, Git Bash /c/ paths). */
 export function comparablePath(p: string, platform = process.platform): string {
+  return platform === "win32" ? nativePath(p, platform).toLowerCase() : nativePath(p, platform);
+}
+
+/** A path as logged, resolved for this platform; on Windows a Git Bash "/c/…" path becomes "C:\…". Case is kept. */
+export function nativePath(p: string, platform = process.platform): string {
   if (platform !== "win32") return path.posix.resolve(p);
   const gitBash = p.match(/^\/([a-zA-Z])(\/.*)?$/);
-  const native = gitBash ? `${gitBash[1]}:${gitBash[2] ?? "/"}` : p;
-  return path.win32.resolve(native).toLowerCase();
+  return path.win32.resolve(gitBash ? `${gitBash[1]}:${gitBash[2] ?? "/"}` : p);
 }
 
 function comparableName(name: string): string {
