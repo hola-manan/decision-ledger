@@ -139,7 +139,7 @@ interface StepView {
   callId: string;
   tool: string;                     // "Bash", "Edit", …
   target: string | null;            // display path, URL, pattern
-  command: string | null;           // Bash, exact, never truncated
+  command: string | null;           // Bash: its first line, at most 200 characters, as claude-log keeps it
   description: string | null;       // Claude's short description
   diffStat: { added: number | null; removed: number | null } | null;
   outcome: "pending" | "ran" | "failed" | "denied";
@@ -352,6 +352,9 @@ export { namedGrades, type NamedGrade } from "./grades";        // moved from re
 export { loadParameters, ConfigError } from "./parameters";
 export { localHumanName } from "./identity";
 export { RetryBackoff } from "./backoff";
+export { CLAUDE_CODE_ORIGIN } from "./records";               // the watcher writes it, the panel matches it
+// The engine's error classes and grade bounds, so the panel never imports engine (D-018):
+export { ApiError, ModelOutputError, NoModelError, GRADE_MIN, GRADE_MAX } from "../../engine/src";
 ```
 
 ### panel
@@ -367,12 +370,17 @@ class ExchangeBuilder {
 }
 function phaseOf(ex: Exchange, now: number, quietSince: number): { phase: "working" | "ended"; endReason: EndReason | null };
 function hasPendingCall(ex: Exchange): boolean;
-function hasPendingQuestion(ex: Exchange): boolean;         // an unanswered AskUserQuestion; waiting.ts reuses it
+function pendingCalls(ex: Exchange): CallState[];            // oldest first
+function pendingQuestion(ex: Exchange): CallState | undefined;   // an unanswered AskUserQuestion; phase and waiting share it
+function hasPendingQuestion(ex: Exchange): boolean;
+function lastTextPart(ex: Exchange): string | undefined;    // the last non-blank text
+// constants: PERMISSION_QUIET_MS, TOOLS_THAT_NEVER_ASK, TEXT_QUESTION_PREFIX, THINKING, WRITING_REPLY; type DisplayPath
 const STALE_EXCHANGE_MS = 600_000;
 const ASK_USER_QUESTION_TOOL = "AskUserQuestion";
 function detectWaiting(ex: Exchange, now: number, quietSince: number): Waiting | null;
-function collectFileChanges(ex: Exchange): FileChange[];
-function activityText(ex: Exchange): string | null;
+interface Waiting { kind: "question" | "permission"; confidence: "certain" | "likely" | "possible"; since: string; id: string }   // id: tool_use id, or "text:" + exchange id
+function collectFileChanges(ex: Exchange): FileChange[];   // absolute paths; view mapping makes them relative
+function activityText(ex: Exchange, show?: (absolutePath: string) => string): string;   // the caller shows null once ended
 
 class DecisionLinker {
   constructor(ledger: () => Ledger);
@@ -381,7 +389,7 @@ class DecisionLinker {
 }
 interface LinkedDecision { hash: string; record: DecisionRecord; nodeHash: string; grades: NamedGrade[]; replaces: { hash: string; seq: number; decision: string; authorName: string } | null }
 
-function sectionState(input: { exchange: Exchange; phase: Phase; linked: LinkedDecision[]; status: ExtractionStatus }): DecisionSectionView["state"];
+function sectionState(input: { exchange: Exchange; phase: Phase; status: ExtractionStatus }): DecisionSectionView["state"];   // whether "notYet" shows (only with decisions so far) is the view's call
 function toExchangeView(input: { exchange: Exchange; derived: Derived; linked: LinkedDecision[]; section: DecisionSectionView; humanName: string; workspace: string }): ExchangeView;
 function toPanelError(error: unknown): PanelError;
 

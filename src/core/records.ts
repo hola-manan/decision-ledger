@@ -7,6 +7,9 @@ import type { Author, AuthorKind, Grades, ParameterDefinition } from "../../engi
 
 export type { Author, AuthorKind, Grades, ParameterDefinition };
 
+/** Turn.origin for Claude Code sessions: written by the watcher, matched by the panel. */
+export const CLAUDE_CODE_ORIGIN = "claude-code";
+
 /** One chat message with code stripped. Records are grounded to it. */
 export interface Turn {
   type: "turn";

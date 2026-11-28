@@ -1,32 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import * as fs from "fs";
-import * as path from "path";
 import { parseLogLines, type LogEntry } from "../src/claude-log";
 import { ExchangeBuilder, type Exchange } from "../src/panel/exchanges";
 import { phaseOf, STALE_EXCHANGE_MS } from "../src/panel/phase";
+import { build, fixture, lines, SESSION } from "./panel-helpers";
 
-const FIXTURES = path.join(__dirname, "..", "..", "test", "fixtures", "claude-log");
-const SESSION = "session-1";
 const NOW = Date.parse("2026-11-28T12:00:00Z");
 const MINUTE = 60 * 1000;
-
-/** Complete lines of a fixture, parsed from offset 0. */
-function fixture(name: string): LogEntry[] {
-  const text = fs.readFileSync(path.join(FIXTURES, `${name}.jsonl`), "utf8");
-  return parseLogLines(text.split("\n").slice(0, -1), 0);
-}
-
-/** Inline JSONL lines → entries, with byte offsets as if they were one file. */
-function lines(...objects: object[]): LogEntry[] {
-  return parseLogLines(objects.map((o) => JSON.stringify(o)), 0);
-}
-
-function build(entries: LogEntry[]): ExchangeBuilder {
-  const builder = new ExchangeBuilder(SESSION);
-  builder.apply(entries);
-  return builder;
-}
 
 function only(entries: LogEntry[]): Exchange {
   const all = build(entries).exchanges();

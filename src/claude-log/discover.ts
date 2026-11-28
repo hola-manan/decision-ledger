@@ -79,7 +79,8 @@ function readHead(file: string, bytes: number): string {
   }
 }
 
-function comparablePath(p: string, platform = process.platform): string {
+/** A path as logged, in a form two spellings of the same file share (Windows: case, separators, Git Bash /c/ paths). */
+export function comparablePath(p: string, platform = process.platform): string {
   if (platform !== "win32") return path.posix.resolve(p);
   const gitBash = p.match(/^\/([a-zA-Z])(\/.*)?$/);
   const native = gitBash ? `${gitBash[1]}:${gitBash[2] ?? "/"}` : p;

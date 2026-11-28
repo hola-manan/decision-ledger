@@ -13,7 +13,7 @@ export type {
 } from "./entries";
 export { parseLogLines, isTurnEnd } from "./parse";
 export { withoutHarnessText } from "./harness";
-export { findSessionFiles, isInsideWorkspace, sessionIdOf } from "./discover";
+export { comparablePath, findSessionFiles, isInsideWorkspace, sessionIdOf } from "./discover";
 export { Listeners, type Unsubscribe } from "./listeners";
 export {
   createSessionLogSource,

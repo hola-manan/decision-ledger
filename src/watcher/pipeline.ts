@@ -5,7 +5,7 @@
  * processed from its first message the first time it's used (D-020).
  */
 import { ApiError, type Model } from "../../engine/src";
-import { chunkTurns, ingestBacklog, RetryBackoff, type Ledger, type RawTurn } from "../core";
+import { chunkTurns, CLAUDE_CODE_ORIGIN, ingestBacklog, RetryBackoff, type Ledger, type RawTurn } from "../core";
 import { isTurnEnd, Listeners, sessionIdOf, type LogBatch, type SessionLogSource, type SourceFailure, type Unsubscribe } from "../claude-log";
 import { appendTurns, toRawTurns } from "./turns";
 import { readWatchState, writeWatchState, type WatchState } from "./offsets";
@@ -13,7 +13,6 @@ import type { ExtractionStatus, ExtractionStatusProvider } from "./status";
 
 export const MAX_TURNS_PER_BATCH = 24;
 export const MAX_CHARS_PER_TURN = 4000;
-const ORIGIN = "claude-code";
 const SHORT_ID_CHARS = 8;
 const SHORT_HASH_CHARS = 7;
 const DISCOVERY_SOURCE = "scan";
@@ -251,7 +250,7 @@ export class ExtractionPipeline implements ExtractionStatusProvider {
   private async ingest(file: string, turns: RawTurn[]): Promise<void> {
     const session = turns.find((t) => t.session)?.session || sessionIdOf(file);
     const model = await this.options.model();
-    const meta = { origin: ORIGIN, session, humanName: this.options.humanName() };
+    const meta = { origin: CLAUDE_CODE_ORIGIN, session, humanName: this.options.humanName() };
     await ingestBacklog(this.options.ledger(), turns, model, meta, MAX_TURNS_PER_BATCH, (batch) => {
       const outcome = batch.result ? `${batch.result.records.length} decisions, node ${batch.result.node.slice(0, SHORT_HASH_CHARS)}` : "no decisions";
       this.options.log(`claude-code ${session.slice(0, SHORT_ID_CHARS)}: ${batch.turns} turns → ${outcome}`);
@@ -275,7 +274,7 @@ export class ExtractionPipeline implements ExtractionStatusProvider {
     const ids = new Set<string>();
     for (const { record } of ledger.stateAt()) {
       const turn = ledger.turn(record.source.turn);
-      if (turn.origin === ORIGIN && turn.externalId) ids.add(turn.externalId);
+      if (turn.origin === CLAUDE_CODE_ORIGIN && turn.externalId) ids.add(turn.externalId);
     }
     return ids;
   }

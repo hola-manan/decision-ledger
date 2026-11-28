@@ -53,7 +53,7 @@ export interface ToolCall {
   file?: string;
   /** What to show for the call: the file, URL, search pattern or sub-agent description. */
   target?: string;
-  /** Bash only, exact. */
+  /** Bash only: the first line, at most MAX_COMMAND_CHARS (a heredoc body can be a whole file). */
   command?: string;
   /** Claude's short description (Bash, Task, Agent). */
   description?: string;

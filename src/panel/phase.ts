@@ -3,7 +3,7 @@
  * "Derived values"). Pure: the caller passes the clock.
  */
 import { isTurnEnd } from "../claude-log";
-import type { Exchange } from "./exchanges";
+import type { CallState, Exchange } from "./exchanges";
 
 /** A reply with no new line for this long is shown as incomplete; more lines bring it back. */
 export const STALE_EXCHANGE_MS = 10 * 60 * 1000;
@@ -32,13 +32,22 @@ export function phaseOf(exchange: Exchange, now: number, quietSince: number): Ph
   return { phase: "working", endReason: null };
 }
 
+/** Calls with no result yet, oldest first. */
+export function pendingCalls(exchange: Exchange): CallState[] {
+  return [...exchange.calls.values()].filter((state) => !state.result);
+}
+
 export function hasPendingCall(exchange: Exchange): boolean {
-  return [...exchange.calls.values()].some((state) => !state.result);
+  return pendingCalls(exchange).length > 0;
 }
 
 /** A question Claude asked with AskUserQuestion that has no answer yet: a certain wait. */
+export function pendingQuestion(exchange: Exchange): CallState | undefined {
+  return pendingCalls(exchange).find((state) => state.call.tool === ASK_USER_QUESTION_TOOL);
+}
+
 export function hasPendingQuestion(exchange: Exchange): boolean {
-  return [...exchange.calls.values()].some((state) => !state.result && state.call.tool === ASK_USER_QUESTION_TOOL);
+  return pendingQuestion(exchange) !== undefined;
 }
 
 function ended(endReason: EndReason): Phase {

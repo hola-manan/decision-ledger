@@ -168,6 +168,15 @@ function addAssistant(exchange: Exchange, entry: AssistantEntry): void {
   }
 }
 
+/** The reply's last text that isn't blank, if any. */
+export function lastTextPart(exchange: Exchange): string | undefined {
+  for (let i = exchange.parts.length - 1; i >= 0; i--) {
+    const part = exchange.parts[i];
+    if (part.type === "text" && part.text.trim()) return part.text;
+  }
+  return undefined;
+}
+
 /** Invariant 4: a result attaches only to a call in the same exchange. False for an orphan. */
 function addResult(exchange: Exchange, entry: ToolResultEntry): boolean {
   const state = exchange.calls.get(entry.toolUseId);

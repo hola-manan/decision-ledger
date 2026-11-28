@@ -128,9 +128,9 @@ interface CallState { call: ToolCall; at: string; result?: ToolResultEntry }
 | `phase` | `"ended"` if `interrupted`; or the last assistant entry is an `apiError`; or `lastAssistant` passes `isTurnEnd` and no call is pending; or **replaced**: a later prompt started another exchange (`isReplaced`): everything after it belongs to the newer exchange, so this one will never finish; or **stale**: the session file has been quiet `STALE_EXCHANGE_MS` (10 min) with no certain wait. Otherwise `"working"`. Checked in that order. |
 | `endReason` | `"stoppedByUser"` if interrupted; `"error"` if the last assistant entry has `apiError`; `"done"` if the reply finished; `"incomplete"` if replaced or stale. |
 | `durationMs` | last entry time − prompt time. |
-| `activity` (while working) | From the newest pending call: the status wording table in `docs/ui/chat-panel.md`, built from `tool` + `target`/`description`. With no pending call: "Thinking…". |
+| `activity` (while working) | From the **oldest** pending call (later ones are queued, A15): the status wording table in `docs/ui/chat-panel.md`, built from `tool` + `target`/`description`. With no pending call: "Writing the reply…" if the last part is non-blank text, else "Thinking…". A text line is logged only once its block is complete, so "Writing the reply…" really shows while Claude produces the next block. |
 | `waiting` | See [Waiting detection](#waiting-detection). |
-| `files` | One row per path, in first-touch order. Uses `result.fileChange` when present, else `call.edit`. Only calls whose result isn't an error count. Counts are summed per path. `kind` is `added` if the first successful change created the file. |
+| `files` | One row per path (two spellings of one Windows path are one row), in first-touch order. Uses `result.fileChange` when present, else `call.edit`. Only calls whose result isn't an error count; denied and pending calls don't. Counts are summed per path and stay unknown once any change to the path has unknown counts. `kind` is `added` if the first counted change created the file. |
 | `steps` | One per call: tool, target, outcome `ran` / `failed` / `denied` / `pending`. |
 | `questions` | Every AskUserQuestion call (with answers once the result arrives), plus a **text question** when the reply ended and its final paragraph ends with `?`. |
 
@@ -141,8 +141,8 @@ Computed by `detectWaiting(exchange, now, quietSince)`, with an honest confidenc
 | Signal | Kind | Confidence | Reliability |
 |---|---|---|---|
 | An `AskUserQuestion` call has no result | question | `certain` | Reliable while A8/A10 hold: that tool always blocks on the person. |
-| Phase ended with `done`, and the last text part's final paragraph ends with `?` (ignoring trailing whitespace and closing quotes or brackets) | question | `likely` | Heuristic. Rhetorical questions give false positives. Questions phrased without `?` ("Let me know which you prefer.") are missed. Cleared when the next prompt arrives. |
-| Any other call has no result, the file has been quiet `PERMISSION_QUIET_MS` (3 s), the tool isn't in `TOOLS_THAT_NEVER_ASK` (Read, Glob, Grep, TodoWrite, Task, Agent), the exchange's `permissionMode` isn't `bypassPermissions`, and (for edit tools) it isn't `acceptEdits` | permission | `possible` | **Unreliable by nature.** The log looks the same while a long command runs (tests, installs) as while Claude Code waits for approval. Allow rules in the person's Claude Code settings also aren't visible. The panel says "may be waiting" and never shows a badge for it. |
+| Phase ended with `done` and not replaced, and the last non-blank text part's final paragraph, outside code blocks, ends with `?` (ignoring trailing whitespace, closing quotes or brackets, and markdown emphasis `*` `_`) | question | `likely` | Heuristic. Rhetorical questions give false positives. Questions phrased without `?` ("Let me know which you prefer.") are missed. Cleared when the next prompt arrives. |
+| The **oldest** call with no result (A15) is not AskUserQuestion, the file has been quiet `PERMISSION_QUIET_MS` (3 s), the tool isn't in `TOOLS_THAT_NEVER_ASK` (Read, Glob, Grep, TodoWrite, Task, Agent), the exchange's `permissionMode` isn't `bypassPermissions`, and (for edit tools) it isn't `acceptEdits` | permission | `possible` | **Unreliable by nature.** The log looks the same while a long command runs (tests, installs) as while Claude Code waits for approval. Allow rules in the person's Claude Code settings also aren't visible. The panel says "may be waiting" and never shows a badge for it. |
 
 When the call's result arrives: `rejected` → resolved line "Denied in Claude Code"; otherwise the step shows as ran or failed.
 
@@ -171,10 +171,10 @@ stateDiagram-v2
 
 ## 3. Linking ledger records to exchanges (`panel/linker.ts`)
 
-1. For each record in `ledger.stateAt()` (**current branch only**, matching the tree view), read `turn = ledger.turn(record.source.turn)`.
+1. For each record in the state of the HEAD node (**current branch only**, matching the tree view; HEAD is read once per pass), read `turn = ledger.turn(record.source.turn)`.
 2. Keep it if `turn.origin === "claude-code"` and `turn.session === followed sessionId`.
 3. Its exchange is the one whose `entryIds` contains `turn.externalId`. A human turn's `externalId` is the prompt uuid, and an AI turn's is the uuid of its first fragment, so both fall inside the exchange they came from.
-4. Its node is found by walking `ledger.log()` from HEAD and indexing each node's `added`. The index is extended incrementally when HEAD moves.
+4. Its node is found by following `parent` links from HEAD (not `ledger.log()`, which stops at 200 nodes) and indexing each node's `added`. The index is extended incrementally when HEAD moves, and only once a walk reaches the root or an indexed node, so a failed read never leaves a gap. A record in the state with no node is an error, never skipped silently.
 5. `replaces` comes from `record.supersedes` → that record's `seq`, `decision` and `author.name`. Grades are named with `namedGrades` (moved to core).
 
 Records whose turn has no `externalId` (origins `vscode-chat` and `cli`) aren't shown in the panel. They stay in the tree view.
@@ -253,5 +253,6 @@ The format isn't documented. Every assumption below is implemented only in `src/
 | A12 | A new conversation in Claude Code creates a new file; file basename = `sessionId` | V | The follower still works from file mtimes |
 | A13 | Resuming a conversation may write a new file whose first lines repeat earlier history, with the same line uuids | I | Panel: duplicate exchanges. Extraction: on a chat's first use the watcher skips turns whose log line already grounds a decision on this branch, so repeated history isn't recorded twice; a repeated turn that produced no decision before is sent again |
 | A14 | `entrypoint` is `"claude-vscode"` for the VS Code extension (V) and something else for the terminal (I). Not used for logic | V/I | None |
+| A15 | Claude Code runs tools that change things (Bash, edits) one at a time in the order Claude wrote them; read-only tools may run together. So the oldest pending call is the one running or asking for permission | I | Waiting and status point at the wrong call: a missed or false "may be waiting". Confirm against a real session with two pending calls |
 
 **Fixtures are synthetic.** They're written by hand to match the real structure; real session logs are never committed, because they can hold secrets and code. When an **I** assumption is confirmed, record the Claude Code `version` field from the log you checked in the fixture's header comment.

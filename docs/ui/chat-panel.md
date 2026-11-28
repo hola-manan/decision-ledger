@@ -147,11 +147,15 @@ Numbers match the preview's state switcher.
 |---|---|
 | Thinking | Thinking… |
 | Read a file | Reading src/users/userRepository.ts… |
-| Edit a file / write a new file | Editing src/db/client.ts… / Creating prisma/schema.prisma… |
-| Run a command | Running npm test… (Claude's short description of the command if it gave one, else the command itself) |
+| Edit a file / write a file | Editing src/db/client.ts… / Writing prisma/schema.prisma… (whether the file is new only shows once it is written) |
+| Run a command | Claude's short description of the command as written ("Run the test suite…"), else Running npm test… |
 | Search code / find files | Searching for "sendEmail"… / Finding files matching *.test.ts… |
 | Fetch a web page | Fetching docs.example.dev… |
 | Run a sub-agent | Running a sub-agent: review the migration… |
+| Search the web | Searching the web… |
+| Ask you a question | Asking you a question… (the waiting variant replaces it) |
+| Update its to-do list | Updating the to-do list… |
+| Any other tool | Using {tool}… or Using {tool} on {target}… |
 | Write the final text | Writing the reply… |
 
 ### 4 · Needs you: Claude asks a question
