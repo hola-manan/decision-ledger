@@ -27,6 +27,7 @@ With `ledger.engine.provider` on `auto`, an Anthropic key wins, then a Gemini ke
 
 - **Chat:** open the Chat view and type `@ledger add rate limiting to the login route`. You can also use `@ledger /state` and `@ledger /log`.
 - **Sidebar:** the Decision Ledger icon shows nodes (newest first). Expand a node to see its records, each with its author's name; hover for its grades. Click a record to open it: the decision, who brought it, its grades with each parameter's scale, the grounding quote and the full source message.
+- **Filter:** the filter icon on the Decisions view opens a strip with one slider per parameter. Drag the two handles to show only decisions in that grade range (for example Reversibility 1–2). A decision must fit every narrowed slider; one without that grade is hidden. The filter only changes the view, and it is remembered per project.
 - **Right-click a node:** *Show State at Node*, *Diff with Parent*, *Create Branch Here*.
 - **Agents:** just run Claude Code in the workspace. New turns are processed once the agent has been idle for 20s (configurable). A chat is processed from its first message the first time it's used while the extension runs; sessions nobody touches are never sent.
 

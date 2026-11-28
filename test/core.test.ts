@@ -6,7 +6,7 @@ import * as path from "path";
 import { Author, Ledger, NewDecision, ParameterSet } from "../src/core/store";
 import { stripCode, splitCode, asMarkdownCode } from "../src/core/code";
 import { ingest, IngestMeta, parseIngestTurns } from "../src/core/ingest";
-import { CONFIG_FILE, ConfigError, DEFAULT_PARAMETERS, loadParameters } from "../src/core/parameters";
+import { CONFIG_FILE, ConfigError, DEFAULT_PARAMETERS, loadParameters, readParameters } from "../src/core/parameters";
 import { appendTurns } from "../src/watcher/turns";
 import { chunkTurns, splitText } from "../src/core/chunk";
 import { batchSize, ingestBacklog } from "../src/core/batches";
@@ -354,3 +354,11 @@ test("backoff: delays double up to a cap, each distinct error is reported once, 
   assert.equal(b.fail("quota exceeded", 0), true);
 });
 
+test("readParameters never creates config.json; without it, the defaults", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ledger-filter-"));
+  const ledger = Ledger.open(dir);
+  assert.deepEqual(readParameters(ledger), DEFAULT_PARAMETERS);
+  assert.equal(fs.existsSync(path.join(ledger.dir, CONFIG_FILE)), false);
+  fs.writeFileSync(path.join(ledger.dir, CONFIG_FILE), JSON.stringify({ parameters: [{ id: "risk", name: "Risk", low: "none", high: "lots" }] }));
+  assert.deepEqual(readParameters(ledger).map((p) => p.id), ["risk"]);
+});

@@ -7,6 +7,6 @@ export { ingestBacklog, type BatchCommitted, type RawTurn } from "./batches";
 export { chunkTurns } from "./chunk";
 export { stripCode, CODE_PLACEHOLDER } from "./code";
 export { namedGrades, type NamedGrade } from "./grades";
-export { loadParameters, ConfigError } from "./parameters";
+export { loadParameters, readParameters, ConfigError } from "./parameters";
 export { localHumanName } from "./identity";
 export { RetryBackoff } from "./backoff";

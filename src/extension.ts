@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import * as os from "os";
 import * as path from "path";
-import { CONFIG_FILE, ensureConfigFile, Ledger, shortHash, type DecisionRecord, type LedgerNode } from "./core";
+import { GRADE_MAX, GRADE_MIN } from "../engine/src";
+import { CONFIG_FILE, ensureConfigFile, Ledger, readParameters, shortHash, type DecisionRecord, type LedgerNode } from "./core";
+import { FILTER_VIEW_ID, FilterViewProvider, GradeFilter, type DecisionCounts } from "./filter";
 import { registerChat } from "./chat";
 import { AgentWatcher } from "./watcher";
 import { createSessionLogSource } from "./claude-log";
@@ -12,6 +14,10 @@ function claudeProjectsDir(): string {
   const configured = vscode.workspace.getConfiguration("ledger").get<string>("agents.claudeProjectsDir", "");
   return configured || path.join(os.homedir(), ".claude", "projects");
 }
+
+/** workspaceState keys: the grade filter is remembered per project (D-021). */
+const FILTER_RANGES_KEY = "ledger.gradeFilter.ranges";
+const FILTER_VISIBLE_KEY = "ledger.gradeFilter.visible";
 
 function recordTooltip(ledger: Ledger, r: DecisionRecord): string {
   const parts = [`**${r.decision}**`, who(r.author)];
@@ -35,19 +41,34 @@ type Item = { kind: "node"; hash: string; node: LedgerNode } | { kind: "record";
 class TreeProvider implements vscode.TreeDataProvider<Item> {
   private emitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.emitter.event;
-  constructor(private ledger: () => Ledger) {}
+  /** The grade filter hides records, and nodes left with none; it never reorders (D-021). */
+  constructor(private ledger: () => Ledger, private filter: GradeFilter) {}
   refresh() {
     this.emitter.fire();
   }
 
   getChildren(el?: Item): Item[] {
     const l = this.ledger();
-    if (!el) return l.log().map(({ hash, node }) => ({ kind: "node", hash, node }));
+    if (!el) {
+      return l
+        .log()
+        .filter(({ node }) => this.filter.showsAny(() => l.records(node.added).map((r) => r.record.grades)))
+        .map(({ hash, node }) => ({ kind: "node", hash, node }));
+    }
     if (el.kind === "node") {
       const dead = new Set(l.stateAt().map((r) => r.record.supersedes).filter(Boolean));
-      return l.records(el.node.added).map((r) => ({ kind: "record", ...r, dead: dead.has(r.hash) }));
+      return l
+        .records(el.node.added)
+        .filter((r) => this.filter.shows(r.record.grades))
+        .map((r) => ({ kind: "record", ...r, dead: dead.has(r.hash) }));
     }
     return [];
+  }
+
+  /** Records on this branch, and how many of them the filter shows. */
+  counts(): DecisionCounts {
+    const l = this.ledger();
+    return this.filter.count(l.log().flatMap(({ node }) => l.records(node.added).map((r) => r.record.grades)));
   }
 
   getTreeItem(el: Item): vscode.TreeItem {
@@ -81,14 +102,44 @@ export function activate(ctx: vscode.ExtensionContext) {
   const getLedger = () => (ledger ??= Ledger.open(root));
   const out = vscode.window.createOutputChannel("Decision Ledger");
 
-  const tree = new TreeProvider(getLedger);
+  const filter = new GradeFilter(
+    { get: () => ctx.workspaceState.get(FILTER_RANGES_KEY), set: (ranges) => void ctx.workspaceState.update(FILTER_RANGES_KEY, ranges) },
+    { min: GRADE_MIN, max: GRADE_MAX },
+    // Only called on a user's change, after activation, by which time showFilterResult exists.
+    () => showFilterResult()
+  );
+  const tree = new TreeProvider(getLedger, filter);
+  const filterView = new FilterViewProvider({
+    extensionUri: ctx.extensionUri,
+    filter,
+    parameters: () => readParameters(getLedger()).map(({ id, name, low, high }) => ({ id, name, low, high })),
+    counts: () => tree.counts(),
+    editParameters: () => void vscode.commands.executeCommand("ledger.editParameters"),
+    log: (line) => out.appendLine(line),
+  });
   const view = vscode.window.createTreeView("ledger.tree", { treeDataProvider: tree });
-  const refresh = () => {
+  /** After the filter changes: the tree, its title and the strip's count. config.json isn't re-read. */
+  const showFilterResult = () => {
     tree.refresh();
     const l = getLedger();
-    view.description = l.currentBranch() ? `on ${l.currentBranch()}` : `detached ${shortHash(l.head() ?? "")}`;
+    const branch = l.currentBranch() ? `on ${l.currentBranch()}` : `detached ${shortHash(l.head() ?? "")}`;
+    view.description = filter.isActive ? `${branch} · filtered` : branch;
+    void vscode.commands.executeCommand("setContext", "ledger.filterActive", filter.isActive);
+    filterView.postState();
+  };
+  const refresh = () => {
+    filterView.syncParameters();
+    showFilterResult();
   };
   refresh();
+  const isFilterVisible = () => ctx.workspaceState.get<boolean>(FILTER_VISIBLE_KEY, false);
+  const toggleFilter = () => {
+    const isVisible = !isFilterVisible();
+    void ctx.workspaceState.update(FILTER_VISIBLE_KEY, isVisible);
+    void vscode.commands.executeCommand("setContext", "ledger.filterVisible", isVisible);
+    if (isVisible) void vscode.commands.executeCommand(`${FILTER_VIEW_ID}.focus`);
+  };
+  void vscode.commands.executeCommand("setContext", "ledger.filterVisible", isFilterVisible());
 
   // Keep the view live when the CLI or another window writes to .ledger/
   const fsw = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, ".ledger/{HEAD,refs/**}"));
@@ -110,8 +161,8 @@ export function activate(ctx: vscode.ExtensionContext) {
   const configWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, `.ledger/${CONFIG_FILE}`));
   ctx.subscriptions.push(
     configWatcher,
-    configWatcher.onDidChange(() => watcher.retryNow()),
-    configWatcher.onDidCreate(() => watcher.retryNow()),
+    configWatcher.onDidChange(() => (watcher.retryNow(), refresh())),
+    configWatcher.onDidCreate(() => (watcher.retryNow(), refresh())),
     ctx.secrets.onDidChange(() => watcher.retryNow()),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("ledger.engine")) watcher.retryNow();
@@ -138,6 +189,10 @@ export function activate(ctx: vscode.ExtensionContext) {
 
   ctx.subscriptions.push(
     out, view, fsw, watcher, source,
+    vscode.window.registerWebviewViewProvider(FILTER_VIEW_ID, filterView),
+    vscode.commands.registerCommand("ledger.toggleFilter", toggleFilter),
+    vscode.commands.registerCommand("ledger.toggleFilterNarrowed", toggleFilter),
+    vscode.commands.registerCommand("ledger.resetFilter", () => filter.reset()),
     vscode.commands.registerCommand("ledger.refresh", refresh),
     vscode.commands.registerCommand("ledger.openRecord", run((hash: string) => showMarkdown(recordDoc(getLedger(), hash)))),
     vscode.commands.registerCommand("ledger.showText", run((text: string) => showMarkdown(text))),

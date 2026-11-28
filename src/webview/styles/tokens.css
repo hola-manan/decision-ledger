@@ -134,6 +134,9 @@
   --dl-skeleton-width-long: 92%;
   --dl-skeleton-width-short: 55%;
   --dl-progress-segment: 30%;
+  --dl-slider-track-height: 4px;  /* grade filter (filter.md) */
+  --dl-slider-handle: 14px;
+  --dl-slider-handle-hover: 16px;
 
   /* ---------- Opacity ---------- */
   --dl-opacity-disabled: 0.4;     /* VS Code's own disabled look */

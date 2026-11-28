@@ -10,9 +10,9 @@ Moves are kept minimal: existing modules stay where they are, and only the code 
 decision-ledger/
 ├── package.json                 # changed: webview view, new commands, scripts, codicons, no chatParticipants
 ├── tsconfig.json                # changed: excludes src/webview/view and src/webview/main.ts (DOM code)
-├── tsconfig.webview.json        # new: DOM lib, ES modules, src/webview + src/protocol → out/webview
+├── tsconfig.webview.json        # new: DOM lib, ES modules, src/webview + src/protocol → out/browser
 ├── scripts/
-│   └── copy-webview-assets.mjs  # new: copies styles/*.css and @vscode/codicons into out/webview
+│   └── copy-webview-assets.mjs  # new: copies styles/*.css and @vscode/codicons into out/browser
 ├── engine/                      # unchanged (fixed contract, separate workspace)
 ├── docs/
 │   ├── architecture/            # these documents
@@ -47,6 +47,11 @@ decision-ledger/
 │   │   ├── turns.ts             # LogEntry → RawTurn (moved from transcript.ts), appendTurns
 │   │   ├── status.ts            # ExtractionStatus, ExtractionStatusProvider (no vscode)
 │   │   └── offsets.ts           # watch.json read/write: { offset } (no vscode)
+│   ├── filter/                  # grade filter above the decisions tree (D-021)
+│   │   ├── index.ts
+│   │   ├── grade-filter.ts      # ranges: restore, clamp, matchesRanges   (pure)
+│   │   ├── filter-view.ts       # FilterViewProvider: webview view, workspaceState (vscode)
+│   │   └── html.ts              # HTML shell + CSP + nonce                 (vscode)
 │   ├── panel/                   # companion panel, extension side
 │   │   ├── index.ts             # registerPanel
 │   │   ├── exchanges.ts         # Exchange types + ExchangeBuilder        (pure)
@@ -65,12 +70,14 @@ decision-ledger/
 │   │   └── html.ts              # HTML shell + CSP + nonce (vscode)
 │   ├── protocol/                # shared contract; no vscode, no DOM
 │   │   ├── index.ts
+│   │   ├── filter.ts            # Filter view messages + parseFilterMessage (D-021)
 │   │   ├── version.ts           # PROTOCOL_VERSION
 │   │   ├── messages.ts          # HostMessage, WebviewMessage unions
 │   │   ├── views.ts             # ExchangeView and friends
 │   │   ├── errors.ts            # PanelError, codes, actions
 │   │   └── validate.ts          # parseHostMessage, parseWebviewMessage
 │   └── webview/                 # runs in the webview (browser); imports use explicit .js extensions
+│       ├── filter/              # the Filter view (D-021): main.ts, filter.css
 │       ├── main.ts              # entry: bridge + store + render loop
 │       ├── bridge.ts            # acquireVsCodeApi, validate inbound, send actions, setState
 │       ├── model/               # no DOM; unit-tested in Node
@@ -141,3 +148,5 @@ The existing deep imports into `core/` (`./core/store`, `./core/ingest`, …) ar
 | `tsconfig.json` | Excludes `src/webview/view/**` and `src/webview/main.ts`. |
 | `docs/ui/tokens.css` | Moved to `src/webview/styles/tokens.css`; the preview links are updated. |
 | `README.md` | Describes the companion panel; drops `@ledger`. |
+
+Arrived early with the grade filter (D-021): `tsconfig.webview.json`, `scripts/copy-webview-assets.mjs`, the `tsconfig.json` exclusion of `src/webview/filter/` (DOM code), and the move of `docs/ui/tokens.css` to `src/webview/styles/tokens.css`.

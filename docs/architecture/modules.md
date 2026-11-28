@@ -22,8 +22,9 @@ The companion panel is a webview view that follows the Claude Code session the u
 | **watcher** (extraction pipeline) | `src/watcher/` | Turning log entries into ledger records: entry → `RawTurn` projection, pending backlog per file, flush policy, committed offsets in `.ledger/watch.json`, extraction status | `AgentWatcher` (start/stop/retryNow), `ExtractionStatusProvider` | claude-log, core, engine (error classes only), provider |
 | **provider** | `src/provider.ts` | Choosing the extraction model (SecretStorage keys, Copilot) | `getEngine`, secret key names | engine |
 | **panel** (new, extension side) | `src/panel/` | Which session is followed, the exchange model, waiting detection, file changes, linking ledger records to exchanges, mapping to view models, the webview lifecycle and its CSP | `PanelController` (a `WebviewViewProvider`), `registerPanel` | claude-log, core (read-only queries), watcher (status interface), protocol |
-| **protocol** (new, shared) | `src/protocol/` | The extension↔webview contract: message and view types, error format, version, validators | types, `PROTOCOL_VERSION`, `parseHostMessage`, `parseWebviewMessage` | nothing (no `vscode`, no DOM) |
+| **protocol** (new, shared) | `src/protocol/` | The extension↔webview contract: message and view types, error format, version, validators | types, `PROTOCOL_VERSION`, `parseHostMessage`, `parseWebviewMessage`; for the Filter view, `parseFilterMessage`, `parseFilterHostMessage` | nothing (no `vscode`, no DOM) |
 | **webview** (new, browser side) | `src/webview/` | Rendering the panel; UI-only state (open disclosures, scroll) | nothing (it is an app) | protocol |
+| **filter** (new) | `src/filter/` | The grade filter: which grade ranges are shown, saved per workspace; the Filter webview view (D-021) | `GradeFilter`, `FilterViewProvider`, `FILTER_VIEW_ID` | core (`ConfigError` only), protocol; the app shell passes in the parameters (`readParameters`, which never writes) and the grade bounds |
 | **app shell** | `src/extension.ts` | Activation and wiring; the decisions tree view; commands | `activate` | everything above |
 | **render** | `src/render.ts` | Markdown documents for records, state and diffs (editor tabs) | `recordDoc`, `stateDoc`, `diffDoc`, … | core |
 | **cli** | `src/cli.ts` | The `ledger` command | binary | core, engine |
@@ -34,6 +35,9 @@ flowchart TD
   ext[app shell: extension.ts] --> panel
   ext --> watcher
   ext --> render
+  ext --> filter
+  filter --> core
+  filter --> protocol
   ext --> provider
   panel --> claudelog[claude-log]
   panel --> core
@@ -83,6 +87,9 @@ The webview is a separate program (it runs in the webview's browser context); it
 - **`actions.ts`**: handlers for webview actions (open record, reveal node, open file, retry, set up a model, choose session, load earlier); each validates its arguments against the current model.
 - **`controller.ts`**: `PanelController`, the thin VS Code adapter. It implements `WebviewViewProvider`, implements the two ports (postMessage, view badge, commands, quick picks) and hands everything to `SessionPanel`.
 - **`html.ts`**: the webview HTML shell with a strict CSP and a nonce.
+
+### filter
+View-only (D-021). `grade-filter.ts` (no vscode, unit-tested) holds the rules: restoring saved ranges against the current parameters, clamping to the grade scale, and whether a record's grades fit. `filter-view.ts` is the webview view: it validates every message with `parseFilterMessage` (the webview validates the other direction with `parseFilterHostMessage`), saves ranges in `workspaceState`, and tells the tree to refresh. The browser side is `src/webview/filter/`.
 
 ### protocol
 Types for every message in both directions, view types, `PanelError` and its codes, `PROTOCOL_VERSION`, and hand-written validators (same style as `engine/src/schemas.ts`). Compiled into both the extension and the webview. See [api.md](api.md).

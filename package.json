@@ -55,6 +55,12 @@
     "views": {
       "ledger": [
         {
+          "type": "webview",
+          "id": "ledger.filter",
+          "name": "Filter",
+          "when": "ledger.filterVisible"
+        },
+        {
           "id": "ledger.tree",
           "name": "Decisions"
         }
@@ -63,7 +69,13 @@
     "viewsWelcome": [
       {
         "view": "ledger.tree",
-        "contents": "No decisions yet.\n\nChat with **@ledger** in the Chat view, or run Claude Code in this workspace. Decisions show up here as ordered nodes.\n\n[Set Anthropic API Key](command:ledger.setApiKey) or [Set Vertex AI (Gemini) API Key](command:ledger.setGeminiApiKey) (optional, otherwise Copilot models are used)"
+        "contents": "No decisions yet.\n\nChat with **@ledger** in the Chat view, or run Claude Code in this workspace. Decisions show up here as ordered nodes.\n\n[Set Anthropic API Key](command:ledger.setApiKey) or [Set Vertex AI (Gemini) API Key](command:ledger.setGeminiApiKey) (optional, otherwise Copilot models are used)",
+        "when": "!ledger.filterActive"
+      },
+      {
+        "view": "ledger.tree",
+        "when": "ledger.filterActive",
+        "contents": "No decisions match the grade filter.\n\n[Reset Grade Filter](command:ledger.resetFilter)"
       }
     ],
     "commands": [
@@ -129,10 +141,37 @@
         "command": "ledger.showText",
         "title": "Show Text",
         "category": "Ledger"
+      },
+      {
+        "command": "ledger.toggleFilter",
+        "title": "Show or Hide Grade Filter",
+        "category": "Ledger",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "ledger.toggleFilterNarrowed",
+        "title": "Show or Hide Grade Filter (filtered)",
+        "category": "Ledger",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "ledger.resetFilter",
+        "title": "Reset Grade Filter",
+        "category": "Ledger"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "ledger.toggleFilter",
+          "when": "view == ledger.tree && !ledger.filterActive",
+          "group": "navigation@0"
+        },
+        {
+          "command": "ledger.toggleFilterNarrowed",
+          "when": "view == ledger.tree && ledger.filterActive",
+          "group": "navigation@0"
+        },
         {
           "command": "ledger.showCurrent",
           "when": "view == ledger.tree",
@@ -173,6 +212,10 @@
         },
         {
           "command": "ledger.showText",
+          "when": "false"
+        },
+        {
+          "command": "ledger.toggleFilterNarrowed",
           "when": "false"
         }
       ]
@@ -228,7 +271,7 @@
     }
   },
   "scripts": {
-    "compile": "npm run clean && tsc -p .",
+    "compile": "npm run clean && tsc -p . && tsc -p tsconfig.webview.json && node scripts/copy-webview-assets.mjs",
     "test": "npm run compile && node --test out/test/*.test.js && npm test -w engine",
     "package": "npm run compile && vsce package --no-dependencies",
     "clean": "node scripts/clean.mjs"

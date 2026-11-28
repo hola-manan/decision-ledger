@@ -23,6 +23,24 @@ The engine contract (`engine/src/contract.ts`) is fixed and not repeated here. T
 - **Throttling:** upserts are coalesced per exchange, at most one per `LIVE_UPDATE_MIN_INTERVAL_MS` (250 ms). A snapshot replaces all webview data.
 - **What never crosses:** API keys, model replies, byte offsets, log file paths, file contents or patches, stack traces.
 
+### Filter view (D-021): a deliberate, lighter contract
+
+The Filter view (`src/protocol/filter.ts`) is a separate, tiny webview that ships in the same bundle as the extension. It follows the validation rule above (`parseFilterMessage` in the extension, `parseFilterHostMessage` in the webview; invalid messages are dropped and the extension logs them) but not the rest:
+- **No `v` envelope.** Both ends always ship together, and nothing is persisted in the webview, so there is no stale-webview case to detect.
+- **No `requestId` / `actionResult`.** Every action's result is the next `state` message.
+- **Its own error message, `{ type: "error", message }`, instead of `PanelError`.** The only error the view shows is "the parameters can't be read": a `ConfigError`'s text, or a fixed sentence for anything else (whose details go to the output channel). It has one fixed action, "Edit Decision Parameters".
+
+| Direction | `type` | Payload |
+|---|---|---|
+| host → webview | `state` | `scale`, `parameters` (`id`, `name`, `low?`, `high?`), `ranges` (one per parameter), `isActive`, `shown`, `total` |
+| host → webview | `error` | `message` |
+| webview → host | `ready` | none; the host answers with `state` or `error` |
+| webview → host | `setRange` | `id`, `range` (`min`, `max`, whole grades; the host clamps them) |
+| webview → host | `reset` | none |
+| webview → host | `editParameters` | none; runs `ledger.editParameters` |
+
+If the panel protocol later adopts a shared envelope helper, the filter moves onto it in the same change.
+
 ### Host → webview
 
 | `type` | When | Payload |

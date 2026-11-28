@@ -42,8 +42,17 @@ export function ensureConfigFile(ledger: Ledger): string {
 
 /** The current parameter set. A broken config is an error to fix, never silently replaced by defaults. */
 export function loadParameters(ledger: Ledger): ParameterDefinition[] {
-  const file = ensureConfigFile(ledger);
-  const config = parseConfigJson(fs.readFileSync(file, "utf8"));
+  return parseParameters(fs.readFileSync(ensureConfigFile(ledger), "utf8"));
+}
+
+/** The parameters a view should show: like loadParameters, but never writes; a missing file means the defaults. */
+export function readParameters(ledger: Ledger): ParameterDefinition[] {
+  const file = path.join(ledger.dir, CONFIG_FILE);
+  return fs.existsSync(file) ? parseParameters(fs.readFileSync(file, "utf8")) : DEFAULT_PARAMETERS;
+}
+
+function parseParameters(text: string): ParameterDefinition[] {
+  const config = parseConfigJson(text);
   try {
     return parseParameterDefinitions(config.parameters, `.ledger/${CONFIG_FILE} parameters`);
   } catch (e) {

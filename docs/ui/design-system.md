@@ -5,7 +5,7 @@
 This fits the users because they are developers mid-task in VS Code. A chat panel that brings its own brand would compete with their code and their theme; one that reads like VS Code lets them scan a reply in seconds.
 
 Files:
-- Tokens: [`docs/ui/tokens.css`](tokens.css). It moves to the webview's styles folder once that folder exists (there is no webview source yet).
+- Tokens: [`src/webview/styles/tokens.css`](../../src/webview/styles/tokens.css), shared by every webview (moved from `docs/ui/` when the grade filter shipped, D-021).
 - Reference styles for every component: [`docs/ui/previews/preview.css`](previews/preview.css). This is throwaway preview code, but class names and structure are the intended shape.
 - Every component in every state: [`docs/ui/previews/components.html`](previews/components.html).
 
@@ -143,6 +143,12 @@ These know nothing about chats, decisions or Claude. They take text, icons and c
 - **Sizes:** one size: `--dl-control-height` (26px, or 44px on touch). Icon buttons use `--dl-control-height-sm`.
 - **States:** default · hover (theme hover colour) · focus (ring) · pressed (same as hover; VS Code has no separate pressed style) · disabled (`--dl-opacity-disabled`, `cursor: not-allowed`; use `aria-disabled="true"` instead of `disabled` when the button must still explain itself through a tooltip or nearby text) · loading (`aria-busy="true"`, the leading icon becomes the spinner, and the label becomes a present participle such as "Checking…" or "Retrying…").
 - **Rule:** at most one primary button visible per context (the composer, a card, an empty state). Labels are verbs: "Allow", "Retry now", "Set up a model", never "OK" or "Submit".
+
+### RangeSlider
+- **Purpose:** pick a whole-number range on a short scale (the grade filter, [filter.md](filter.md)).
+- **Anatomy:** label and value on one line; a track with two handles and the selected part filled with `--dl-color-primary`; marks under the track; optional end labels in `--dl-color-fg-secondary`.
+- **States:** default · hover (handle takes the primary hover colour) · focus (ring) · disabled (`--dl-opacity-disabled`).
+- **Accessibility:** two native range inputs, each with its own label; handles never cross.
 
 ### TextArea
 - **Purpose:** multi-line text entry (the composer).
