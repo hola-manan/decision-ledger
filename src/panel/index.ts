@@ -11,3 +11,6 @@ export { displayPath } from "./paths";
 export { deriveExchange, toExchangeView, toDecisionSectionView, type Derived, type ExchangeViewInput, type DecisionSectionInput } from "./view";
 export { closingQuestion } from "./waiting";
 export { SessionFollower, type FollowChoice } from "./follower";
+export { SessionPanel, LIVE_UPDATE_MIN_INTERVAL_MS, type Clock, type SessionPanelDeps, type WebviewPort } from "./session-panel";
+export type { HostCommands } from "./actions";
+export { registerPanel, PanelController, PANEL_VIEW_ID } from "./controller";

@@ -6,6 +6,7 @@ import { CONFIG_FILE, ensureConfigFile, Ledger, readParameters, shortHash, type 
 import { FILTER_VIEW_ID, FilterViewProvider, GradeFilter, type DecisionCounts } from "./filter";
 import { registerChat } from "./chat";
 import { AgentWatcher } from "./watcher";
+import { registerPanel, type PanelController } from "./panel";
 import { createSessionLogSource } from "./claude-log";
 import { GEMINI_SECRET_KEY, SECRET_KEY } from "./provider";
 import { diffDoc, gradesText, recordDoc, stateDoc, who } from "./render";
@@ -127,9 +128,12 @@ export function activate(ctx: vscode.ExtensionContext) {
     void vscode.commands.executeCommand("setContext", "ledger.filterActive", filter.isActive);
     filterView.postState();
   };
+  /** Set once the Live Session view is registered; it shows the decisions too. */
+  let panel: PanelController | undefined;
   const refresh = () => {
     filterView.syncParameters();
     showFilterResult();
+    panel?.ledgerChanged();
   };
   refresh();
   const isFilterVisible = () => ctx.workspaceState.get<boolean>(FILTER_VISIBLE_KEY, false);
@@ -156,6 +160,7 @@ export function activate(ctx: vscode.ExtensionContext) {
   });
   const watcher = new AgentWatcher(ctx, getLedger, source, root, out, refresh);
   if (vscode.workspace.workspaceFolders && vscode.workspace.getConfiguration("ledger").get("agents.watchClaudeCode", true)) watcher.start();
+  panel = registerPanel(ctx, { source, watcher, ledger: getLedger, workspace: root, log: out });
   // A new key or engine setting may fix a failing watcher; don't make it wait out the backoff.
   // Nor should a fixed .ledger/config.json.
   const configWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, `.ledger/${CONFIG_FILE}`));
@@ -254,6 +259,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     vscode.commands.registerCommand("ledger.toggleAgentWatch", () => {
       if (watcher.running) watcher.stop();
       else watcher.start();
+      refresh();
       vscode.window.showInformationMessage(`Ledger: agent watching ${watcher.running ? "on" : "off"}.`);
     })
   );

@@ -254,9 +254,18 @@ export class ExtractionPipeline implements ExtractionStatusProvider {
     await ingestBacklog(this.options.ledger(), turns, model, meta, MAX_TURNS_PER_BATCH, (batch) => {
       const outcome = batch.result ? `${batch.result.records.length} decisions, node ${batch.result.node.slice(0, SHORT_HASH_CHARS)}` : "no decisions";
       this.options.log(`claude-code ${session.slice(0, SHORT_ID_CHARS)}: ${batch.turns} turns → ${outcome}`);
-      if (batch.result) this.options.onCommitted();
+      // Progress is saved before anyone is told, so a listener that throws can't make these turns be extracted again.
       if (batch.safeOffset !== undefined) this.commit(file, batch.safeOffset);
+      if (batch.result) this.tellCommitted();
     });
+  }
+
+  private tellCommitted(): void {
+    try {
+      this.options.onCommitted();
+    } catch (error) {
+      this.options.log(`a listener failed after a commit: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**

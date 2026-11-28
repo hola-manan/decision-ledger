@@ -18,7 +18,7 @@ The engine contract (`engine/src/contract.ts`) is fixed and not repeated here. T
 - **Naming:** camelCase fields; message `type`s are camelCase verbs or nouns (D-019).
 - **Nullable, never optional:** view fields are always present, with `null` when there's no value. That makes validators simple and rendering explicit.
 - **Validation at both edges.** The webview runs `parseHostMessage(raw)` on everything it receives, and the extension runs `parseWebviewMessage(raw)`. Both are hand-written validators in `src/protocol/validate.ts` (no schema library, D-013). An invalid message is dropped and logged: the webview posts `protocolError`, and the extension writes to the "Decision Ledger" output channel. Unknown fields are stripped.
-- **Versioning:** additive changes (a new optional message type, a new field that old receivers can ignore) keep `v`. Removing or changing the meaning of a field bumps `v`. The extension and webview ship in one bundle, so a mismatch only means a stale webview. The webview then shows `PROTOCOL_VERSION_MISMATCH` and posts `reloadRequest`, and the host re-renders its HTML.
+- **Versioning:** additive changes (a new optional message type, a new field that old receivers can ignore) keep `v`. Removing or changing the meaning of a field bumps `v`. The extension and webview ship in one bundle, so a mismatch only means a stale webview. The webview then shows `PROTOCOL_VERSION_MISMATCH` with a "Reload the panel" button that posts `reloadRequest`, and the host re-renders its HTML. (It doesn't reload by itself: a mismatch that persisted would loop.)
 - **Order:** the host sends nothing until it receives `ready`, then sends exactly one `snapshot` before any `exchangeUpserted`. The webview ignores updates received before its first snapshot.
 - **Throttling:** upserts are coalesced per exchange, at most one per `LIVE_UPDATE_MIN_INTERVAL_MS` (250 ms). A snapshot replaces all webview data.
 - **What never crosses:** API keys, model replies, byte offsets, log file paths, file contents or patches, stack traces.
@@ -241,7 +241,7 @@ interface PanelError {
 type PanelAction = "retryExtraction" | "setUpModel" | "editParameters" | "enableExtraction" | "rescanSessions" | "chooseSession" | "openOutput";
 ```
 
-- Errors are converted **in one place**: `panel/errors.ts` (`toPanelError(error)`). Services throw domain errors (engine errors, `ConfigError`, fs errors); nothing else builds a `PanelError` by hand except `NOT_FOUND` and `INVALID_MESSAGE` in `actions.ts`.
+- Errors are converted **in one place**: `panel/errors.ts` (`toPanelError(error)`). Services throw domain errors (engine errors, `ConfigError`, fs errors); problems with no domain error behind them (`NOT_FOUND`, `INVALID_MESSAGE`, `ACTION_FAILED`, `EXTRACTION_OFF`, `NO_SESSION_FOUND`, `LOG_FORMAT_UNRECOGNIZED`) have small builders in the same file, so every `PanelError` the extension sends is made there. The webview builds one itself: `PROTOCOL_VERSION_MISMATCH`, which only it can notice.
 - The webview owns titles and icons per code (presentation copy from `docs/ui/chat-panel.md`). The extension owns `message` (facts).
 - `message` never contains a key (`ApiError` guarantees this), a model reply (`ModelOutputError.reply` is never forwarded), or a stack.
 
@@ -291,6 +291,7 @@ interface SessionLogSource {
   onDidDiscover(listener: (file: SessionFile) => void): Unsubscribe;
   onDidAppend(listener: (batch: LogBatch) => void): Unsubscribe;
   onDidRemove(listener: (file: string) => void): Unsubscribe;   // a known session file is gone
+  driftedLines(file: string): number | undefined;             // set once the file has drifted (for a panel opened after the event)
   onDidFail(listener: (failure: { file: string | null; error: Error }) => void): Unsubscribe;
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe;
 }
@@ -415,28 +416,38 @@ class SessionFollower {
 
 /** The orchestrator: everything the panel does, behind ports, so it is testable without VS Code. */
 class SessionPanel {
-  constructor(deps: { source; follower; status: ExtractionStatusProvider; linker; port: WebviewPort; host: HostCommands; clock: Clock; workspace: string; humanName: string });
+  constructor(deps: {
+    source; follower; status: ExtractionStatusProvider; linker; ledger: () => Ledger; port: WebviewPort; host: HostCommands; clock: Clock;
+    workspace: string; humanName: () => string; isExtractionEnabled: () => boolean;
+    useSession: (file: string) => void;   // D-020: the followed chat is "used"; also called when watching is turned on
+    log: (line: string) => void;
+  });
   receive(raw: unknown): void;          // validated with parseWebviewMessage
-  ledgerChanged(): void;                // from the .ledger file watcher / watcher onChange
+  ledgerChanged(): void;                // from the .ledger file watcher / watcher onChange / watching toggled
   dispose(): void;
 }
+// Nothing the panel does throws into the source, the watcher or the webview: failures are logged; those the person can act on become a problem.
 interface WebviewPort { post(message: HostMessage): void; setBadge(count: number, tooltip: string): void }
+interface Clock { now(): number; setTimeout(run: () => void, ms: number): unknown; clearTimeout(handle: unknown): void }
+const LIVE_UPDATE_MIN_INTERVAL_MS = 250;
 interface HostCommands {
   openRecord(hash: string): Promise<void>; revealNode(hash: string): Promise<void>; openFile(absolutePath: string): Promise<void>;
   setUpModel(): Promise<void>; editParameters(): Promise<void>; enableExtraction(): Promise<void>; showOutput(): void;
   pickSession(items: { sessionId: string; label: string; detail: string }[]): Promise<string | undefined>;
+  reload(): void;                       // re-render the webview HTML (version mismatch)
+  isClaudeCodeInstalled(): boolean;     // for the NO_SESSION_FOUND hint
 }
 
-// vscode adapter
-class PanelController implements vscode.WebviewViewProvider { /* builds html (html.ts), wires port and host commands to SessionPanel */ }
-function registerPanel(ctx: vscode.ExtensionContext, deps): vscode.Disposable;
+// vscode adapter: the panel starts when the view is first shown, then stays live (for the badge) while hidden
+class PanelController implements vscode.WebviewViewProvider, WebviewPort, HostCommands { ledgerChanged(): void; chooseSession(): void; followLatest(): void }
+function registerPanel(ctx: vscode.ExtensionContext, deps: { source; watcher: AgentWatcher; ledger: () => Ledger; workspace: string; log: OutputChannel }): PanelController;
 ```
 
 ---
 
 ## 4. Webview HTML and security (`panel/html.ts`)
 
-- `webview.options = { enableScripts: true, enableCommandUris: false, localResourceRoots: [out/webview, media] }`. `retainContextWhenHidden` is off: a re-shown view sends `ready` and gets a fresh snapshot.
+- `webview.options = { enableScripts: true, enableCommandUris: false, localResourceRoots: [out/browser] }`. `retainContextWhenHidden` is off: a re-shown view sends `ready` and gets a fresh snapshot.
 - CSP (one `<meta>`, a fresh nonce per render):
   `default-src 'none'; img-src ${cspSource} data:; style-src ${cspSource}; font-src ${cspSource}; script-src 'nonce-${nonce}' ${cspSource};`
   `${cspSource}` is in `script-src` only so that the entry module can import its sibling modules. No `unsafe-inline`, no `unsafe-eval`, no remote origins.

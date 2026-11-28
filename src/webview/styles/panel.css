@@ -1,0 +1,172 @@
+/* Live Session panel: whole-panel states and the session line (build step 15). Every value comes from tokens.css. */
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  padding: var(--dl-space-md) var(--dl-space-lg);
+  background: var(--dl-color-bg);
+  color: var(--dl-color-fg);
+  font-family: var(--dl-font-family);
+  font-size: var(--dl-font-size-base);
+  line-height: var(--dl-line-height-base);
+}
+
+#root {
+  max-width: var(--dl-content-max-width);
+  margin: 0 auto;
+}
+
+p,
+h2 {
+  margin: 0;
+}
+
+.status {
+  color: var(--dl-color-fg-secondary);
+}
+
+/* ---------- Empty and problem states ---------- */
+.empty-state {
+  display: grid;
+  gap: var(--dl-space-sm);
+  justify-items: start;
+  padding: var(--dl-space-xl) 0;
+}
+
+.empty-state-title {
+  font-size: var(--dl-font-size-lg);
+  font-weight: var(--dl-font-weight-semibold);
+  line-height: var(--dl-line-height-tight);
+}
+
+.empty-state-body,
+.empty-state-meta {
+  color: var(--dl-color-fg-secondary);
+}
+
+.empty-state-danger {
+  padding: var(--dl-space-md);
+  border: var(--dl-border-width) solid var(--dl-color-danger-border);
+  border-radius: var(--dl-radius-md);
+  background: var(--dl-color-danger-bg);
+}
+
+.empty-state-danger .empty-state-body {
+  color: var(--dl-color-fg);
+  overflow-wrap: anywhere;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dl-space-sm);
+  margin-top: var(--dl-space-xs);
+}
+
+/* ---------- Session line ---------- */
+.session-line {
+  display: grid;
+  gap: var(--dl-space-2xs);
+  padding-bottom: var(--dl-space-md);
+  margin-bottom: var(--dl-space-md);
+  border-bottom: var(--dl-border-width) solid var(--dl-color-border);
+}
+
+.session-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-label,
+.session-meta {
+  color: var(--dl-color-fg-secondary);
+}
+
+.session-meta {
+  font-size: var(--dl-font-size-sm);
+}
+
+.session-actions {
+  display: flex;
+  gap: var(--dl-space-md);
+}
+
+/* ---------- Exchanges (compact until the full components land) ---------- */
+.exchange {
+  display: grid;
+  gap: var(--dl-space-xs);
+  padding: var(--dl-space-md) 0;
+  border-bottom: var(--dl-border-width) solid var(--dl-color-border);
+}
+
+.exchange-prompt {
+  font-weight: var(--dl-font-weight-semibold);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.exchange-status,
+.exchange-decisions {
+  color: var(--dl-color-fg-secondary);
+}
+
+.exchange-status-waiting {
+  color: var(--dl-color-warning);
+}
+
+.exchange-error,
+.action-error {
+  color: var(--dl-color-danger);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Buttons ---------- */
+.button {
+  min-height: var(--dl-control-height-sm);
+  padding: 0 var(--dl-space-md);
+  border: var(--dl-border-width) solid transparent;
+  border-radius: var(--dl-radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: var(--dl-focus-width) solid var(--dl-color-focus);
+  outline-offset: var(--dl-focus-offset);
+}
+
+.button-primary {
+  background: var(--dl-color-primary);
+  color: var(--dl-color-primary-fg);
+}
+
+.button-primary:hover {
+  background: var(--dl-color-primary-hover);
+}
+
+.button-secondary {
+  border-color: var(--dl-color-border);
+  background: var(--dl-color-secondary);
+  color: var(--dl-color-secondary-fg);
+}
+
+.button-secondary:hover {
+  background: var(--dl-color-secondary-hover);
+}
+
+.button-text {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  color: var(--dl-color-link);
+}
+
+.button-text:hover {
+  color: var(--dl-color-link-hover);
+  text-decoration: underline;
+}

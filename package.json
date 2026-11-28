@@ -63,6 +63,11 @@
         {
           "id": "ledger.tree",
           "name": "Decisions"
+        },
+        {
+          "type": "webview",
+          "id": "ledger.panel",
+          "name": "Live Session"
         }
       ]
     },
@@ -158,6 +163,23 @@
         "command": "ledger.resetFilter",
         "title": "Reset Grade Filter",
         "category": "Ledger"
+      },
+      {
+        "command": "ledger.chooseSession",
+        "title": "Switch Session",
+        "category": "Ledger",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "ledger.followLatestSession",
+        "title": "Follow Latest Session",
+        "category": "Ledger",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "ledger.setUpModel",
+        "title": "Set Up a Model",
+        "category": "Ledger"
       }
     ],
     "menus": {
@@ -186,6 +208,16 @@
           "command": "ledger.refresh",
           "when": "view == ledger.tree",
           "group": "navigation@3"
+        },
+        {
+          "command": "ledger.chooseSession",
+          "when": "view == ledger.panel",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ledger.followLatestSession",
+          "when": "view == ledger.panel",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

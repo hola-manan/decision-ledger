@@ -11,5 +11,5 @@
     "sourceMap": true
   },
   "include": ["src", "test"],
-  "exclude": ["src/webview/filter"]
+  "exclude": ["src/webview/filter", "src/webview/view", "src/webview/main.ts", "src/webview/bridge.ts"]
 }

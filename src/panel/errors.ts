@@ -54,9 +54,25 @@ function statusMeaning(status: number): string {
 
 function fsReason(error: unknown): string {
   const code = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
-  return (typeof code === "string" && FS_REASONS[code]) || "it can't be read";
+  return (typeof code === "string" && FS_REASONS[code]) || "an unexpected error happened";
 }
 
 function panelError(code: PanelError["code"], message: string, details: PanelError["details"], actions: PanelAction[]): PanelError {
   return { code, message, details: details && Object.keys(details).length ? details : null, actions };
 }
+
+// ---------- panel and action problems: no domain error behind them, built here so every PanelError comes from this file ----------
+
+export const notFound = (what: string): PanelError => panelError("NOT_FOUND", `That ${what} isn't part of this conversation.`, null, []);
+
+export const invalidMessage = (reason: string): PanelError => panelError("INVALID_MESSAGE", "The panel sent a message the extension couldn't read.", { reason }, []);
+
+export const actionFailed = (): PanelError => panelError("ACTION_FAILED", "That didn't work. The details are in the Decision Ledger output.", null, ["openOutput"]);
+
+export const extractionOff = (): PanelError => panelError("EXTRACTION_OFF", "Agent watching is off, so nothing is being extracted.", null, ["enableExtraction"]);
+
+export const noSessionFound = (claudeCodeInstalled: boolean): PanelError =>
+  panelError("NO_SESSION_FOUND", "No Claude Code session was found for this workspace.", { claudeCodeInstalled }, ["rescanSessions"]);
+
+export const formatUnrecognized = (lines: number): PanelError =>
+  panelError("LOG_FORMAT_UNRECOGNIZED", `Claude Code's session log has ${lines} lines this version can't read.`, { lines }, ["openOutput"]);

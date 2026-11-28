@@ -155,7 +155,7 @@ interface Harness {
   log: string[];
 }
 
-function harness(options: { model?: Model; before?: (h: { dir: string; ledger: Ledger }) => void } = {}): Harness {
+function harness(options: { model?: Model; before?: (h: { dir: string; ledger: Ledger }) => void; onCommitted?: () => void } = {}): Harness {
   const workspace = path.join(tmp(), "proj");
   const projectsDir = tmp();
   const dir = path.join(projectsDir, path.resolve(workspace).replace(/[^a-zA-Z0-9]/g, "-"));
@@ -175,7 +175,7 @@ function harness(options: { model?: Model; before?: (h: { dir: string; ledger: L
     idleMs: () => IDLE_MS,
     checkEveryMs: 0,
     log: (line) => log.push(line),
-    onCommitted: () => {},
+    onCommitted: options.onCommitted ?? (() => {}),
     onFailure: () => {},
     onRecovered: () => {},
     now: () => clock.now,
@@ -202,6 +202,25 @@ test("pipeline: a session file created after start has its first prompt extracte
   assert.equal(h.pipeline.status(file).committedOffset, fs.statSync(file).size);
   const humanTurn = h.ledger.turn(h.ledger.stateAt()[0].record.source.turn);
   assert.equal(humanTurn.externalId, `p${uuidCounter - 1}`);
+});
+
+test("pipeline: progress is saved even when a listener throws after the commit, so nothing is extracted twice", async () => {
+  const h = harness({
+    onCommitted: () => {
+      throw new Error("panel exploded");
+    },
+  });
+  h.pipeline.start();
+  const file = path.join(h.dir, "s.jsonl");
+  fs.writeFileSync(file, prompt("Use Postgres") + reply("Done."));
+  h.source.tick();
+  await settle(h.pipeline);
+  assert.equal(h.pipeline.status(file).committedOffset, fs.statSync(file).size);
+  assert.ok(h.log.some((line) => line.includes("panel exploded")));
+  fs.appendFileSync(file, prompt("Next") + reply("Ok."));
+  h.source.tick();
+  await settle(h.pipeline);
+  assert.equal(decisions(h.ledger).filter((d) => d === "Decided: Use Postgres").length, 1);
 });
 
 test("pipeline: a finished reply is extracted at once; an unfinished one waits for the file to go quiet", async () => {

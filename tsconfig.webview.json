@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["src/webview/filter/**/*.ts", "src/protocol/**/*.ts"]
+  "include": ["src/webview/**/*.ts", "src/protocol/**/*.ts"]
 }

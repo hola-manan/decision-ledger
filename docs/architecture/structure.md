@@ -9,7 +9,7 @@ Moves are kept minimal: existing modules stay where they are, and only the code 
 ```
 decision-ledger/
 ├── package.json                 # changed: webview view, new commands, scripts, codicons, no chatParticipants
-├── tsconfig.json                # changed: excludes src/webview/view and src/webview/main.ts (DOM code)
+├── tsconfig.json                # changed: excludes the DOM code (src/webview/filter, view, main.ts, bridge.ts)
 ├── tsconfig.webview.json        # new: DOM lib, ES modules, src/webview + src/protocol → out/browser
 ├── scripts/
 │   └── copy-webview-assets.mjs  # new: copies styles/*.css and @vscode/codicons into out/browser
@@ -65,10 +65,13 @@ decision-ledger/
 │   │   ├── paths.ts             # displayPath: relative to the workspace   (pure)
 │   │   ├── errors.ts            # toPanelError: the one error conversion   (pure)
 │   │   ├── follower.ts          # SessionFollower                          (no vscode)
+│   │   ├── followed-session.ts  # FollowedSession: one session read from its start (no vscode)
+│   │   ├── panel-views.ts       # snapshot pieces: exchange, session line, ledger line, badge (pure)
+│   │   ├── update-scheduler.ts  # throttled upserts + the quiet wake-up timer, Clock (no vscode)
 │   │   ├── session-panel.ts     # SessionPanel orchestrator behind ports   (no vscode)
-│   │   ├── actions.ts           # webview action handlers                  (no vscode)
-│   │   ├── controller.ts        # PanelController: WebviewViewProvider, badge, HostCommands (vscode)
-│   │   └── html.ts              # HTML shell + CSP + nonce (vscode)
+│   │   ├── actions.ts           # webview action handlers, HostCommands    (no vscode)
+│   │   ├── html.ts              # HTML shell + CSP                         (pure; the nonce is passed in)
+│   │   └── controller.ts        # PanelController: WebviewViewProvider, badge, HostCommands; registerPanel, ledger.setUpModel (vscode)
 │   ├── protocol/                # shared contract; no vscode, no DOM
 │   │   ├── index.ts
 │   │   ├── filter.ts            # Filter view messages + parseFilterMessage (D-021)
@@ -90,6 +93,8 @@ decision-ledger/
 │       │   └── markdown.ts      # safe markdown subset → token tree
 │       ├── view/                # DOM
 │       │   ├── dom.ts           # element helpers (textContent only)
+│       │   ├── states.ts        # loading, problem, empty, session line (step 15)
+│       │   ├── exchange-summary.ts  # interim compact exchange; replaced by features/session/ (step 17)
 │       │   ├── components/ui/   # Icon, Button, Callout, Disclosure, Section, Tag, DiffStat, Skeleton, EmptyState, Markdown, CodeBlock, Quote, RowLink
 │       │   └── features/session/  # SessionLine, Exchange, UserMessage, ResponseHeader, StatusLine, QuestionCard, PermissionCard, DecisionList, NodeRef, FilesChanged, FullReply
 │       └── styles/
@@ -102,7 +107,9 @@ decision-ledger/
     ├── panel-exchanges.test.ts  # new: builder, phase, waiting, files, activity
     ├── panel-decisions.test.ts  # new: linker, sectionState
     ├── panel-view.test.ts       # new: view mapping, display paths, toPanelError
-    ├── panel-session.test.ts    # new: SessionPanel + follower with fake ports
+    ├── panel-session.test.ts    # new: SessionFollower
+    ├── panel-orchestrator.test.ts  # new: SessionPanel + actions with fake ports, a fake clock and a manual source
+    ├── panel-html.test.ts       # new: the CSP and HTML shell
     ├── protocol.test.ts         # new: validators accept/reject each message
     ├── webview-model.test.ts    # new: reducer, format, markdown
     ├── boundaries.test.ts       # new: import rules (see below)
@@ -126,8 +133,8 @@ decision-ledger/
 
 - `npm run compile` = `tsc -p . && tsc -p tsconfig.webview.json && node scripts/copy-webview-assets.mjs`.
 - `npm test` is unchanged in shape: it compiles, then runs `node --test out/test/*.test.js` and the engine tests. `src/webview/model/` and `src/protocol/` are compiled by both configs, so Node can test them.
-- The webview loads `out/webview/webview/main.js` as `<script type="module" nonce>`. tsc emits ES modules; no bundler (D-012).
-- `vsce package --no-dependencies` doesn't ship `node_modules`, which is why the codicon font and CSS are copied into `out/webview/codicons/`.
+- The webview loads `out/browser/webview/main.js` as `<script type="module" nonce>`. tsc emits ES modules; no bundler (D-012).
+- `vsce package --no-dependencies` doesn't ship `node_modules`, which is why the codicon font and CSS will be copied into `out/browser/codicons/` (when the components need icons, step 17).
 
 ## Boundary rules, enforced by `test/boundaries.test.ts`
 
@@ -149,7 +156,7 @@ The existing deep imports into `core/` (`./core/store`, `./core/ingest`, …) ar
 | `src/extension.ts` | Wires the source, watcher and panel; adds `getParent` to the tree provider (needed for `reveal`) plus the commands `ledger.revealNode`, `ledger.setUpModel`, `ledger.chooseSession`, `ledger.followLatestSession`; removes `registerChat`. |
 | `src/chat.ts` | Deleted (last step). `splitCode`/`asMarkdownCode`/`isFenced` in `core/code.ts` are deleted with their tests if nothing else uses them. |
 | `package.json` | Adds the `ledger.panel` webview view (`"type": "webview"`, name "Live Session") to the `ledger` container, the commands above, the `compile` script and the `@vscode/codicons` devDependency; removes `chatParticipants` and the "Chat" category; updates the welcome text. |
-| `tsconfig.json` | Excludes `src/webview/view/**` and `src/webview/main.ts`. |
+| `tsconfig.json` | Excludes `src/webview/filter/`, `src/webview/view/`, `src/webview/main.ts` and `src/webview/bridge.ts` (DOM code). |
 | `docs/ui/tokens.css` | Moved to `src/webview/styles/tokens.css`; the preview links are updated. |
 | `README.md` | Describes the companion panel; drops `@ledger`. |
 

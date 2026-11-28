@@ -55,6 +55,8 @@ export interface SessionLogSource {
   onDidRemove(listener: (file: string) => void): Unsubscribe;
   onDidFail(listener: (failure: SourceFailure) => void): Unsubscribe;
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe;
+  /** Lines in this file this version couldn't read, if it has drifted (reported once by onFormatDrift); else undefined. */
+  driftedLines(file: string): number | undefined;
 }
 
 /** `file` is null when discovery itself failed. */
@@ -149,6 +151,11 @@ export class PollingSessionLogSource implements SessionLogSource {
 
   onFormatDrift(listener: (drift: { file: string; lines: number }) => void): Unsubscribe {
     return this.drifted.add(listener);
+  }
+
+  driftedLines(file: string): number | undefined {
+    const tracked = this.files.get(file);
+    return tracked?.driftReported ? tracked.lineCount : undefined;
   }
 
   /** One full poll: discover, then read every file that grew. */
